@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1791839610664,
+      "tag": "0000_deportes_espoch_schema",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791995111982,
+      "tag": "0001_gestion_de_accesos",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792170436819,
+      "tag": "0002_genero_deportistas",
+      "breakpoints": true
+    }
+  ]
+}

@@ -1,0 +1,1 @@
+ALTER TABLE public.deportistas ADD COLUMN genero text CHECK (genero IN ('Masculino','Femenino','Otro'));
