@@ -10,33 +10,156 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthRouteImport } from './routes/auth'
+import { Route as AuthenticatedAccesosRouteImport } from './routes/_authenticated/accesos'
+import { Route as AuthenticatedClubesRouteImport } from './routes/_authenticated/clubes'
+import { Route as AuthenticatedDeportesRouteImport } from './routes/_authenticated/deportes'
+import { Route as AuthenticatedDeportistasRouteImport } from './routes/_authenticated/deportistas'
+import { Route as AuthenticatedEscenariosRouteImport } from './routes/_authenticated/escenarios'
+import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
+import { Route as AuthenticatedPeriodosRouteImport } from './routes/_authenticated/periodos'
+import { Route as AuthenticatedSeleccionesRouteImport } from './routes/_authenticated/selecciones'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/auth',
+  path: '/auth',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAccesosRoute = AuthenticatedAccesosRouteImport.update({
+  id: '/accesos',
+  path: '/accesos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedClubesRoute = AuthenticatedClubesRouteImport.update({
+  id: '/clubes',
+  path: '/clubes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDeportesRoute = AuthenticatedDeportesRouteImport.update({
+  id: '/deportes',
+  path: '/deportes',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedDeportistasRoute =
+  AuthenticatedDeportistasRouteImport.update({
+    id: '/deportistas',
+    path: '/deportistas',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedEscenariosRoute = AuthenticatedEscenariosRouteImport.update({
+  id: '/escenarios',
+  path: '/escenarios',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPanelRoute = AuthenticatedPanelRouteImport.update({
+  id: '/panel',
+  path: '/panel',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedPeriodosRoute = AuthenticatedPeriodosRouteImport.update({
+  id: '/periodos',
+  path: '/periodos',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthenticatedSeleccionesRoute =
+  AuthenticatedSeleccionesRouteImport.update({
+    id: '/selecciones',
+    path: '/selecciones',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/accesos': typeof AuthenticatedAccesosRoute
+  '/clubes': typeof AuthenticatedClubesRoute
+  '/deportes': typeof AuthenticatedDeportesRoute
+  '/deportistas': typeof AuthenticatedDeportistasRoute
+  '/escenarios': typeof AuthenticatedEscenariosRoute
+  '/panel': typeof AuthenticatedPanelRoute
+  '/periodos': typeof AuthenticatedPeriodosRoute
+  '/selecciones': typeof AuthenticatedSeleccionesRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/auth': typeof AuthRoute
+  '/accesos': typeof AuthenticatedAccesosRoute
+  '/clubes': typeof AuthenticatedClubesRoute
+  '/deportes': typeof AuthenticatedDeportesRoute
+  '/deportistas': typeof AuthenticatedDeportistasRoute
+  '/escenarios': typeof AuthenticatedEscenariosRoute
+  '/panel': typeof AuthenticatedPanelRoute
+  '/periodos': typeof AuthenticatedPeriodosRoute
+  '/selecciones': typeof AuthenticatedSeleccionesRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/auth': typeof AuthRoute
+  '/_authenticated/accesos': typeof AuthenticatedAccesosRoute
+  '/_authenticated/clubes': typeof AuthenticatedClubesRoute
+  '/_authenticated/deportes': typeof AuthenticatedDeportesRoute
+  '/_authenticated/deportistas': typeof AuthenticatedDeportistasRoute
+  '/_authenticated/escenarios': typeof AuthenticatedEscenariosRoute
+  '/_authenticated/panel': typeof AuthenticatedPanelRoute
+  '/_authenticated/periodos': typeof AuthenticatedPeriodosRoute
+  '/_authenticated/selecciones': typeof AuthenticatedSeleccionesRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/auth'
+    | '/accesos'
+    | '/clubes'
+    | '/deportes'
+    | '/deportistas'
+    | '/escenarios'
+    | '/panel'
+    | '/periodos'
+    | '/selecciones'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/auth'
+    | '/accesos'
+    | '/clubes'
+    | '/deportes'
+    | '/deportistas'
+    | '/escenarios'
+    | '/panel'
+    | '/periodos'
+    | '/selecciones'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/auth'
+    | '/_authenticated/accesos'
+    | '/_authenticated/clubes'
+    | '/_authenticated/deportes'
+    | '/_authenticated/deportistas'
+    | '/_authenticated/escenarios'
+    | '/_authenticated/panel'
+    | '/_authenticated/periodos'
+    | '/_authenticated/selecciones'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthRoute: typeof AuthRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +171,108 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth': {
+      id: '/auth'
+      path: '/auth'
+      fullPath: '/auth'
+      preLoaderRoute: typeof AuthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/accesos': {
+      id: '/_authenticated/accesos'
+      path: '/accesos'
+      fullPath: '/accesos'
+      preLoaderRoute: typeof AuthenticatedAccesosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/clubes': {
+      id: '/_authenticated/clubes'
+      path: '/clubes'
+      fullPath: '/clubes'
+      preLoaderRoute: typeof AuthenticatedClubesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/deportes': {
+      id: '/_authenticated/deportes'
+      path: '/deportes'
+      fullPath: '/deportes'
+      preLoaderRoute: typeof AuthenticatedDeportesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/deportistas': {
+      id: '/_authenticated/deportistas'
+      path: '/deportistas'
+      fullPath: '/deportistas'
+      preLoaderRoute: typeof AuthenticatedDeportistasRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/escenarios': {
+      id: '/_authenticated/escenarios'
+      path: '/escenarios'
+      fullPath: '/escenarios'
+      preLoaderRoute: typeof AuthenticatedEscenariosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/panel': {
+      id: '/_authenticated/panel'
+      path: '/panel'
+      fullPath: '/panel'
+      preLoaderRoute: typeof AuthenticatedPanelRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/periodos': {
+      id: '/_authenticated/periodos'
+      path: '/periodos'
+      fullPath: '/periodos'
+      preLoaderRoute: typeof AuthenticatedPeriodosRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/selecciones': {
+      id: '/_authenticated/selecciones'
+      path: '/selecciones'
+      fullPath: '/selecciones'
+      preLoaderRoute: typeof AuthenticatedSeleccionesRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAccesosRoute: typeof AuthenticatedAccesosRoute
+  AuthenticatedClubesRoute: typeof AuthenticatedClubesRoute
+  AuthenticatedDeportesRoute: typeof AuthenticatedDeportesRoute
+  AuthenticatedDeportistasRoute: typeof AuthenticatedDeportistasRoute
+  AuthenticatedEscenariosRoute: typeof AuthenticatedEscenariosRoute
+  AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
+  AuthenticatedPeriodosRoute: typeof AuthenticatedPeriodosRoute
+  AuthenticatedSeleccionesRoute: typeof AuthenticatedSeleccionesRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAccesosRoute: AuthenticatedAccesosRoute,
+  AuthenticatedClubesRoute: AuthenticatedClubesRoute,
+  AuthenticatedDeportesRoute: AuthenticatedDeportesRoute,
+  AuthenticatedDeportistasRoute: AuthenticatedDeportistasRoute,
+  AuthenticatedEscenariosRoute: AuthenticatedEscenariosRoute,
+  AuthenticatedPanelRoute: AuthenticatedPanelRoute,
+  AuthenticatedPeriodosRoute: AuthenticatedPeriodosRoute,
+  AuthenticatedSeleccionesRoute: AuthenticatedSeleccionesRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthRoute: AuthRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
