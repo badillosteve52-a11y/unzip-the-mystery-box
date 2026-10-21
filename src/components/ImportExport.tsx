@@ -3,7 +3,7 @@ import { Download, Upload } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { exportar, leerArchivo } from "@/lib/excel";
+import { exportar, exportarPDF, leerArchivo } from "@/lib/excel";
 import { errMsg } from "@/lib/db";
 
 export function ImportExport({
@@ -54,6 +54,7 @@ export function ImportExport({
         <DropdownMenuContent>
           <DropdownMenuItem onClick={() => exportar(filas(), nombre, "xlsx")}>Excel (.xlsx)</DropdownMenuItem>
           <DropdownMenuItem onClick={() => exportar(filas(), nombre, "csv")}>CSV</DropdownMenuItem>
+          <DropdownMenuItem onClick={() => exportarPDF(filas(), nombre)}>PDF</DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
     </>
