@@ -17,6 +17,14 @@ export const Route = createFileRoute("/_authenticated/panel")({
 
 const COLORES = ["var(--chart-1)", "var(--chart-2)", "var(--chart-3)", "var(--chart-4)", "var(--chart-5)"];
 
+function normGeneroPanel(v: string | null | undefined): string | null {
+  const s = (v ?? "").trim().toLowerCase();
+  if (!s) return null;
+  if (s.startsWith("f") || s === "mujer") return "Femenino";
+  if (s.startsWith("m") || s === "hombre") return "Masculino";
+  return "Otro";
+}
+
 function contar(xs: (string | null | undefined)[]) {
   const m = new Map<string, number>();
   xs.forEach((x) => m.set(x || "Sin dato", (m.get(x || "Sin dato") ?? 0) + 1));
@@ -65,7 +73,7 @@ function Panel() {
           const g = new Set(gs.filter((x) => x.deporte_id === d.id).map((x) => x.id));
           return ms.filter((m) => g.has(m.grupo_id) && ids.has(m.deportista_id)).length;
         };
-        return { nombre: d.nombre, Selecciones: cuenta(sel, data.selMiembros), Clubes: cuenta(clu, data.clubMiembros) };
+        return { nombre: d.nombre, Clubes: cuenta(clu, data.clubMiembros), Selecciones: cuenta(sel, data.selMiembros) };
       })
       .filter((x) => x.Selecciones + x.Clubes > 0);
     return {
@@ -74,7 +82,7 @@ function Panel() {
       clu,
       porDeporte,
       porFacultad: contar(ds.map((d) => d.facultad)),
-      porGenero: contar(ds.map((d) => d.genero)),
+      porGenero: contar(ds.map((d) => normGeneroPanel(d.genero)).filter((g): g is string => !!g)),
       comparativa,
       hayEjemplo: [data.deportistas, data.deportes, data.periodos, data.escenarios, data.selecciones, data.clubes].some((t) => t.some((x) => x.es_ejemplo)),
     };
@@ -183,8 +191,8 @@ function Panel() {
             <YAxis allowDecimals={false} fontSize={12} width={30} />
             <Tooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="Selecciones" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
             <Bar dataKey="Clubes" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="Selecciones" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </Grafico>
       </div>

@@ -535,7 +535,7 @@ function Page() {
 function normGenero(v: unknown): string | null {
   const s = String(v ?? "").trim().toLowerCase();
   if (!s) return null;
-  if (s.startsWith("m") || s === "hombre") return "Masculino";
   if (s.startsWith("f") || s === "mujer") return "Femenino";
+  if (s.startsWith("m") || s === "hombre") return "Masculino";
   return "Otro";
 }
