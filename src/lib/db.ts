@@ -111,9 +111,9 @@ async function asegurarClubes(existentes: Tables<"clubes">[], deportes: Tables<"
   const { data: nuevos, error } = await supabase.from("clubes").insert(aInsertar).select("*");
   if (error) {
     console.error("Error al completar catálogo de clubes:", error);
-    return existentes;
+    return vigentes;
   }
-  return [...existentes, ...(nuevos ?? [])].sort((a, b) => a.nombre.localeCompare(b.nombre));
+  return [...vigentes, ...(nuevos ?? [])].sort((a, b) => a.nombre.localeCompare(b.nombre));
 }
 
 async function asegurarEscenarios(existentes: Tables<"escenarios">[]) {
