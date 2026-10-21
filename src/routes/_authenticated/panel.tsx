@@ -37,11 +37,8 @@ function Panel() {
   const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "" });
 
   const opcionesFacultad = useMemo(() => {
-    if (!data) return [];
-    return LISTA_FACULTADES
-      .filter((fac) => data.deportistas.some((d) => d.facultad === fac))
-      .map((fac) => ({ value: fac, label: fac }));
-  }, [data]);
+    return LISTA_FACULTADES.map((fac) => ({ value: fac, label: fac }));
+  }, []);
 
   const opcionesCarrera = useMemo(() => {
     if (!data) return [];
