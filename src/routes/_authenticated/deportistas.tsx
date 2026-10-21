@@ -249,9 +249,7 @@ function Page() {
           label="Facultad"
           value={f.facultad}
           onChange={(v) => setF({ ...f, facultad: v, carrera: "" })}
-          opciones={LISTA_FACULTADES
-            .filter((fac) => data.deportistas.some((d) => d.facultad === fac))
-            .map((fac) => ({ value: fac, label: fac }))}
+          opciones={LISTA_FACULTADES.map((fac) => ({ value: fac, label: fac }))}
         />
         <Filtro
           label="Carrera"

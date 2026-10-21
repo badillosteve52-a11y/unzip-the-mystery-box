@@ -207,18 +207,16 @@ export const CATALOGO_DEPORTES = [
 ];
 
 export const CATALOGO_CLUBES = [
-  "Club de Ecuavóley",
-  "Club de Running",
-  "Club de Fútbol Masculino",
-  "Club de Fútbol Femenino",
-  "Club de Baloncesto 3x3",
-  "Club de Baloncesto 5x5",
+  "Club de Acondicionamiento Físico",
   "Club de Tenis de Campo",
   "Club de Tenis de Mesa",
-  "Club de Tenis de Playa",
-  "Club de Voleibol de Playa",
-  "Club de Acondicionamiento Físico",
+  "Club de Fútbol",
+  "Club de Running",
+  "Club de Ajedrez",
+  "Club de Baloncesto",
+  "Club de Voleibol",
   "Club de Defensa Personal",
+  "Club de Ecuavóley",
 ];
 
 export const CATALOGO_SELECCIONES = [
