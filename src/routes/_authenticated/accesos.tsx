@@ -102,7 +102,7 @@ function Page() {
                   <div className="truncate font-medium">{c.correo}</div>
                   <div className="text-xs text-muted-foreground">
                     Registrada el {fecha(c.registrada_en)}
-                    {esYo ? " · esta es tu cuenta" : ""}
+
                   </div>
                 </div>
                 <div className="flex items-center gap-3">
