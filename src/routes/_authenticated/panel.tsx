@@ -106,6 +106,16 @@ function Panel() {
     { label: "Escenarios", valor: data.escenarios.length, icon: Building2 },
   ];
 
+  const cmpClubes = r.comparativa
+    .filter((x) => x.Clubes > 0)
+    .map((x) => ({ nombre: x.nombre, total: x.Clubes }))
+    .sort((a, b) => b.total - a.total);
+  const cmpSelecciones = r.comparativa
+    .filter((x) => x.Selecciones > 0)
+    .map((x) => ({ nombre: x.nombre, total: x.Selecciones }))
+    .sort((a, b) => b.total - a.total);
+
+
   return (
     <div>
       <PageHeader title="Panel general" subtitle="Resumen del Centro de Deportes según los filtros elegidos.">
@@ -181,20 +191,15 @@ function Panel() {
             <Legend wrapperStyle={{ fontSize: 12 }} />
           </PieChart>
         </Grafico>
-        <Grafico titulo="Integrantes: clubes vs selecciones" vacio={!r.comparativa.length}>
-          <BarChart data={r.comparativa}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
-            <XAxis dataKey="nombre" fontSize={11} interval={0} angle={-25} textAnchor="end" height={50} />
-            <YAxis allowDecimals={false} fontSize={12} width={30} />
-            <Tooltip />
-            <Legend wrapperStyle={{ fontSize: 12 }} />
-            <Bar dataKey="Clubes" fill="var(--chart-3)" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="Selecciones" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </Grafico>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <GraficoIntegrantes titulo="Integrantes en clubes" datos={cmpClubes} color="var(--chart-3)" />
+        <GraficoIntegrantes titulo="Integrantes en selecciones" datos={cmpSelecciones} color="var(--chart-1)" />
       </div>
     </div>
   );
+
 }
 
 function SinDatos() {
@@ -206,13 +211,29 @@ function SinDatos() {
   );
 }
 
-function Grafico({ titulo, children, vacio }: { titulo: string; children: React.ReactElement; vacio?: boolean }) {
+function Grafico({ titulo, children, vacio, alto = 288 }: { titulo: string; children: React.ReactElement; vacio?: boolean; alto?: number }) {
   return (
     <div className="rounded-xl border bg-card p-4">
       <h3 className="mb-3 font-semibold">{titulo}</h3>
-      <div className="h-72">
+      <div style={{ height: alto }}>
         {vacio ? <SinDatos /> : <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>}
       </div>
     </div>
   );
 }
+
+function GraficoIntegrantes({ titulo, datos, color }: { titulo: string; datos: { nombre: string; total: number }[]; color: string }) {
+  const alto = Math.max(260, datos.length * 38 + 30);
+  return (
+    <Grafico titulo={titulo} vacio={!datos.length} alto={alto}>
+      <BarChart data={datos} layout="vertical" margin={{ top: 6, right: 24, left: 4, bottom: 6 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" horizontal={false} />
+        <XAxis type="number" allowDecimals={false} fontSize={12} />
+        <YAxis type="category" dataKey="nombre" fontSize={11} width={120} />
+        <Tooltip />
+        <Bar dataKey="total" name="Integrantes" fill={color} radius={[0, 4, 4, 0]} />
+      </BarChart>
+    </Grafico>
+  );
+}
+
