@@ -77,10 +77,22 @@ async function asegurarSelecciones(existentes: Tables<"selecciones">[], deportes
 }
 
 async function asegurarClubes(existentes: Tables<"clubes">[], deportes: Tables<"deportes">[], periodoActualId: string | null) {
-  const nombresExistentes = new Set(existentes.map((c) => c.nombre.trim().toLowerCase()));
+  // Eliminar clubes fuera del catálogo acordado (con sus integrantes)
+  const nombresCatalogo = new Set(CATALOGO_CLUBES.map((n) => n.trim().toLowerCase()));
+  const sobrantes = existentes.filter((c) => !nombresCatalogo.has(c.nombre.trim().toLowerCase()));
+  let vigentes = existentes;
+  if (sobrantes.length) {
+    const ids = sobrantes.map((c) => c.id);
+    await supabase.from("club_miembros").delete().in("club_id", ids);
+    const { error } = await supabase.from("clubes").delete().in("id", ids);
+    if (error) console.error("Error al eliminar clubes fuera del catálogo:", error);
+    else vigentes = existentes.filter((c) => nombresCatalogo.has(c.nombre.trim().toLowerCase()));
+  }
+
+  const nombresExistentes = new Set(vigentes.map((c) => c.nombre.trim().toLowerCase()));
   const faltantes = CATALOGO_CLUBES.filter((n) => !nombresExistentes.has(n.trim().toLowerCase()));
 
-  if (!faltantes.length) return existentes;
+  if (!faltantes.length) return vigentes;
 
   const deportesMap = new Map(deportes.map((d) => [d.nombre.trim().toLowerCase(), d.id]));
 
