@@ -1,6 +1,6 @@
 import type { DatosCompletos } from "./db";
 
-export type Filtros = { periodo: string; deporte: string; facultad: string; carrera: string; q?: string };
+export type Filtros = { periodo: string; deporte: string; facultad: string; carrera: string; region?: string; q?: string };
 
 export function filtrarDeportistas(data: DatosCompletos, f: Filtros) {
   let enPeriodo: Set<string> | null = null;
@@ -20,6 +20,7 @@ export function filtrarDeportistas(data: DatosCompletos, f: Filtros) {
       (!conDeporte || conDeporte.has(d.id)) &&
       (!f.facultad || d.facultad === f.facultad) &&
       (!f.carrera || d.carrera === f.carrera) &&
+      (!f.region || d.region === f.region) &&
       (!t || `${d.nombres} ${d.apellidos} ${d.apellidos} ${d.nombres} ${d.cedula}`.toLowerCase().includes(t)),
   );
 }

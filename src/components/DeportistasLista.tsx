@@ -1,4 +1,3 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Pencil, Plus, Search, Trash2, UserPlus, Flag, UsersRound } from "lucide-react";
 import { toast } from "sonner";
@@ -18,12 +17,9 @@ import { calcularEdad, normalizarFecha } from "@/lib/edad";
 import { filtrarDeportistas } from "@/lib/filtros";
 import { FACULTADES_Y_CARRERAS, LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
 
-export const Route = createFileRoute("/_authenticated/deportistas")({
-  head: () => ({ meta: [{ title: "Deportistas — Centro de Deportes ESPOCH" }] }),
-  component: Page,
-});
+export const REGIONES = ["Sierra", "Costa", "Amazonía", "Insular"] as const;
 
-type Edit = Partial<Deportista> & { deportes: Set<string> };
+type Edit = Partial<Deportista> & { deportes: Set<string>; grupoId?: string };
 
 type ParticipacionState = {
   deportistaId: string;
@@ -31,14 +27,21 @@ type ParticipacionState = {
   grupoId: string;
 };
 
-function Page() {
+export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
+  const esSel = tipo === "SELECCION";
   const { data } = useDatos();
   const refrescar = useRefrescar();
-  const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", q: "" });
+  const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "", q: "" });
   const [edit, setEdit] = useState<Edit | null>(null);
   const [participacion, setParticipacion] = useState<ParticipacionState | null>(null);
 
-  const lista = useMemo(() => (data ? filtrarDeportistas(data, f) : []), [data, f]);
+  const lista = useMemo(() => {
+    if (!data) return [];
+    const propios = new Set((esSel ? data.selMiembros : data.clubMiembros).map((m) => m.deportista_id));
+    const conGrupo = new Set([...data.selMiembros, ...data.clubMiembros].map((m) => m.deportista_id));
+    // Se muestran los del módulo y los que aún no tienen ningún grupo (para no perderlos)
+    return filtrarDeportistas(data, f).filter((d) => propios.has(d.id) || !conGrupo.has(d.id));
+  }, [data, f, esSel]);
 
   // Facultades para el formulario: solo nombres oficiales del catálogo
   const opcionesFacultadForm = useMemo(() => {
@@ -89,6 +92,7 @@ function Page() {
         carrera: carNorm,
         facultad: facNorm,
         genero: edit.genero || null,
+        region: edit.region || null,
       };
       let id = edit.id;
       if (id) {
@@ -102,6 +106,12 @@ function Page() {
       await supabase.from("deportista_deportes").delete().eq("deportista_id", id!);
       if (edit.deportes.size) {
         const { error } = await supabase.from("deportista_deportes").insert([...edit.deportes].map((d) => ({ deportista_id: id!, deporte_id: d })));
+        if (error) throw error;
+      }
+      if (!edit.id && edit.grupoId) {
+        const { error } = esSel
+          ? await supabase.from("seleccion_miembros").insert({ seleccion_id: edit.grupoId, deportista_id: id! })
+          : await supabase.from("club_miembros").insert({ club_id: edit.grupoId, deportista_id: id! });
         if (error) throw error;
       }
       toast.success("Deportista guardado");
@@ -178,6 +188,7 @@ function Page() {
           carrera: carNorm,
           facultad: facNorm,
           genero: normGenero(r["genero"] ?? r["sexo"]),
+          region: normRegion(r["region"] ?? r["zona"]),
           _deps: String(r.deportes ?? r.deporte ?? "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
         };
       })
@@ -211,10 +222,13 @@ function Page() {
 
   return (
     <div>
-      <PageHeader title="Deportistas" subtitle="Cada estudiante se registra una sola vez y puede estar en varios deportes, selecciones y clubes.">
+      <PageHeader
+        title={esSel ? "Deportistas de selecciones" : "Deportistas de clubes"}
+        subtitle={esSel ? "Estudiantes que integran las selecciones deportivas." : "Estudiantes que integran los clubes deportivos."}
+      >
         <ImportExport
-          nombre="deportistas"
-          ayuda="Columnas: Cedula, Nombres, Apellidos, Fecha_Nacimiento, Carrera, Facultad, Genero, Deportes (separados por coma)"
+          nombre={esSel ? "deportistas-selecciones" : "deportistas-clubes"}
+          ayuda="Columnas: Cedula, Nombres, Apellidos, Fecha_Nacimiento, Carrera, Facultad, Genero, Region (Sierra, Costa, Amazonía, Insular), Deportes (separados por coma)"
           onImport={importar}
           filas={() =>
             lista.map((d) => ({
@@ -226,11 +240,12 @@ function Page() {
               Carrera: d.carrera ?? "",
               Facultad: d.facultad ?? "",
               Genero: d.genero ?? "",
+              Region: d.region ?? "",
               Deportes: depsDe(d.id).join(", "),
             }))
           }
         />
-        <Button variant="outline" onClick={() => setParticipacion({ deportistaId: data.deportistas[0]?.id ?? "", tipo: "SELECCION", grupoId: "" })}>
+        <Button variant="outline" onClick={() => setParticipacion({ deportistaId: lista[0]?.id ?? "", tipo, grupoId: "" })}>
           <UserPlus className="mr-2 h-4 w-4" /> Registrar participación
         </Button>
         <Button onClick={() => setEdit({ deportes: new Set() })}>
@@ -257,6 +272,7 @@ function Page() {
           onChange={(v) => setF({ ...f, carrera: v })}
           opciones={opcionesCarreraFiltro}
         />
+        <Filtro label="Región" value={f.region} onChange={(v) => setF({ ...f, region: v })} opciones={REGIONES.map((r) => ({ value: r, label: r }))} />
       </div>
       <p className="mb-2 text-sm text-muted-foreground">{lista.length} deportistas</p>
 
@@ -268,8 +284,9 @@ function Page() {
               <TableHead>Apellidos y nombres</TableHead>
               <TableHead>Edad</TableHead>
               <TableHead>Carrera / Facultad</TableHead>
+              <TableHead>Región</TableHead>
               <TableHead>Deportes</TableHead>
-              <TableHead>Sel. / Clubes</TableHead>
+              <TableHead>{esSel ? "Selecciones" : "Clubes"}</TableHead>
               <TableHead className="w-32 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -288,10 +305,11 @@ function Page() {
                     <div className="text-sm">{d.carrera ?? "—"}</div>
                     <div className="text-xs text-muted-foreground">{d.facultad}</div>
                   </TableCell>
+                  <TableCell className="text-sm">{d.region ?? "—"}</TableCell>
                   <TableCell>
                     <div className="flex flex-wrap gap-1">{depsDe(d.id).map((n) => <Badge key={n} variant="outline">{n}</Badge>)}</div>
                   </TableCell>
-                  <TableCell className="text-sm">{g.sel} / {g.club}</TableCell>
+                  <TableCell className="text-sm">{esSel ? g.sel : g.club}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
@@ -299,7 +317,7 @@ function Page() {
                         variant="ghost"
                         title="Registrar participación"
                         aria-label="Registrar participación"
-                        onClick={() => setParticipacion({ deportistaId: d.id, tipo: "SELECCION", grupoId: "" })}
+                        onClick={() => setParticipacion({ deportistaId: d.id, tipo, grupoId: "" })}
                       >
                         <UserPlus className="h-4 w-4 text-primary" />
                       </Button>
@@ -326,7 +344,7 @@ function Page() {
                 </TableRow>
               );
             })}
-            {!lista.length && <TableRow><TableCell colSpan={7} className="py-10 text-center text-muted-foreground">Sin resultados</TableCell></TableRow>}
+            {!lista.length && <TableRow><TableCell colSpan={8} className="py-10 text-center text-muted-foreground">Sin resultados</TableCell></TableRow>}
           </TableBody>
         </Table>
       </div>
@@ -353,7 +371,31 @@ function Page() {
                 <Label>Apellidos</Label>
                 <Input value={edit.apellidos ?? ""} onChange={(e) => setEdit({ ...edit, apellidos: e.target.value })} />
               </div>
-              <div className="col-span-2 space-y-1.5">
+              <div className="space-y-1.5">
+                <Label>Región de procedencia</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
+                  value={edit.region ?? ""}
+                  onChange={(e) => setEdit({ ...edit, region: e.target.value || null })}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {REGIONES.map((r) => <option key={r} value={r}>{r}</option>)}
+                </select>
+              </div>
+              {!edit.id && (
+                <div className="col-span-2 space-y-1.5">
+                  <Label>{esSel ? "Selección" : "Club"}</Label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
+                    value={edit.grupoId ?? ""}
+                    onChange={(e) => setEdit({ ...edit, grupoId: e.target.value })}
+                  >
+                    <option value="">— Seleccionar —</option>
+                    {(esSel ? data.selecciones : data.clubes).map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
+                  </select>
+                </div>
+              )}
+              <div className="space-y-1.5">
                 <Label>Género</Label>
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
@@ -435,7 +477,7 @@ function Page() {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button>
-            <Button onClick={guardar} disabled={!edit?.cedula || !edit?.nombres || !edit?.apellidos}>Guardar</Button>
+            <Button onClick={guardar} disabled={!edit?.cedula || !edit?.nombres || !edit?.apellidos || (!edit?.id && !edit?.grupoId)}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -536,4 +578,14 @@ function normGenero(v: unknown): string | null {
   if (s.startsWith("f") || s === "mujer") return "Femenino";
   if (s.startsWith("m") || s === "hombre") return "Masculino";
   return "Otro";
+}
+
+export function normRegion(v: unknown): string | null {
+  const s = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  if (!s) return null;
+  if (s.startsWith("sie")) return "Sierra";
+  if (s.startsWith("cos")) return "Costa";
+  if (s.startsWith("ama") || s.startsWith("orie")) return "Amazonía";
+  if (s.startsWith("ins") || s.includes("galap")) return "Insular";
+  return null;
 }

@@ -149,6 +149,7 @@ export type Database = {
           genero: string | null
           id: string
           nombres: string
+          region: string | null
         }
         Insert: {
           apellidos: string
@@ -161,6 +162,7 @@ export type Database = {
           genero?: string | null
           id?: string
           nombres: string
+          region?: string | null
         }
         Update: {
           apellidos?: string
@@ -173,6 +175,7 @@ export type Database = {
           genero?: string | null
           id?: string
           nombres?: string
+          region?: string | null
         }
         Relationships: []
       }
