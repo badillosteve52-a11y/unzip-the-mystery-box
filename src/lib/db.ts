@@ -207,7 +207,7 @@ async function cargarTodo() {
   const deportistasNormalizados = deportistas.map((d, i) => {
     // Estudiantes de ejemplo sin región: se les asigna una para mostrar el panel por zona
     if (d.es_ejemplo && !d.region) {
-      const region = ["Sierra", "Sierra", "Costa", "Sierra", "Amazonía", "Costa", "Sierra", "Insular"][i % 8];
+      const region = ["Sierra", "Sierra", "Costa", "Sierra", "Amazonía", "Costa", "Sierra", "Insular"][i % 8] ?? "Sierra";
       d = { ...d, region };
       supabase.from("deportistas").update({ region }).eq("id", d.id).then(() => {});
     }
