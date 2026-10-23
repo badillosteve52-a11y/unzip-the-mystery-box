@@ -8,6 +8,7 @@ import { Cargando, PageHeader } from "@/components/PageHeader";
 import { Filtro, unicos } from "@/components/Filtro";
 import { borrarDatosEjemplo, errMsg, useDatos, useRefrescar } from "@/lib/db";
 import { filtrarDeportistas } from "@/lib/filtros";
+import { REGIONES } from "@/components/DeportistasLista";
 import { LISTA_FACULTADES, getCarrerasPorFacultad } from "@/lib/catalogos";
 
 export const Route = createFileRoute("/_authenticated/panel")({
@@ -34,7 +35,7 @@ function contar(xs: (string | null | undefined)[]) {
 function Panel() {
   const { data } = useDatos();
   const refrescar = useRefrescar();
-  const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "" });
+  const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "" });
 
   const opcionesFacultad = useMemo(() => {
     return LISTA_FACULTADES.map((fac) => ({ value: fac, label: fac }));
@@ -79,6 +80,7 @@ function Panel() {
       clu,
       porDeporte,
       porFacultad: contar(ds.map((d) => d.facultad)),
+      porRegion: contar(ds.map((d) => d.region ?? "Sin dato")),
       porGenero: contar(ds.map((d) => normGeneroPanel(d.genero)).filter((g): g is string => !!g)),
       comparativa,
       hayEjemplo: [data.deportistas, data.deportes, data.periodos, data.escenarios, data.selecciones, data.clubes].some((t) => t.some((x) => x.es_ejemplo)),
@@ -131,6 +133,7 @@ function Panel() {
         <Filtro label="Deporte" value={f.deporte} onChange={(v) => setF({ ...f, deporte: v })} opciones={data.deportes.map((p) => ({ value: p.id, label: p.nombre }))} />
         <Filtro label="Facultad" value={f.facultad} onChange={(v) => setF({ ...f, facultad: v, carrera: "" })} opciones={opcionesFacultad} />
         <Filtro label="Carrera" value={f.carrera} onChange={(v) => setF({ ...f, carrera: v })} opciones={opcionesCarrera} />
+        <Filtro label="Región" value={f.region} onChange={(v) => setF({ ...f, region: v })} opciones={REGIONES.map((x) => ({ value: x, label: x }))} />
       </div>
 
       <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
@@ -148,7 +151,7 @@ function Panel() {
         <div className="mb-4 flex items-center gap-3 rounded-xl border border-dashed bg-muted/40 p-4 text-sm">
           <SearchX className="h-5 w-5 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1">No se encontraron deportistas con estos filtros.</span>
-          <Button size="sm" variant="outline" onClick={() => setF({ periodo: "", deporte: "", facultad: "", carrera: "" })}>Quitar filtros</Button>
+          <Button size="sm" variant="outline" onClick={() => setF({ periodo: "", deporte: "", facultad: "", carrera: "", region: "" })}>Quitar filtros</Button>
         </div>
       )}
 
@@ -186,6 +189,15 @@ function Panel() {
           <PieChart>
             <Pie data={r.porGenero} dataKey="total" nameKey="nombre" innerRadius={50} outerRadius={90} label>
               {r.porGenero.map((_, i) => <Cell key={i} fill={COLORES[i % COLORES.length]} />)}
+            </Pie>
+            <Tooltip />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+          </PieChart>
+        </Grafico>
+        <Grafico titulo="Deportistas por región" vacio={!r.porRegion.length}>
+          <PieChart>
+            <Pie data={r.porRegion} dataKey="total" nameKey="nombre" outerRadius={90} label>
+              {r.porRegion.map((_, i) => <Cell key={i} fill={COLORES[i % COLORES.length]} />)}
             </Pie>
             <Tooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />

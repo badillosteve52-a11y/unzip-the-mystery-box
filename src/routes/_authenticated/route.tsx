@@ -18,7 +18,8 @@ export const Route = createFileRoute("/_authenticated")({
 
 const nav = [
   { to: "/panel", label: "Panel", icon: BarChart3 },
-  { to: "/deportistas", label: "Deportistas", icon: Users },
+  { to: "/deportistas-selecciones", label: "Deportistas de selecciones", icon: Users },
+  { to: "/deportistas-clubes", label: "Deportistas de clubes", icon: Users },
   { to: "/selecciones", label: "Selecciones", icon: Flag },
   { to: "/clubes", label: "Clubes", icon: UsersRound },
   { to: "/deportes", label: "Deportes", icon: Dumbbell },

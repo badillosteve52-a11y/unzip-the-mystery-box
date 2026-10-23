@@ -204,7 +204,14 @@ async function cargarTodo() {
   // "Ingeniería Civil", "Nutrición", "Contabilidad"…) y también unifica
   // los nombres de facultad abreviados al formato oficial en mayúsculas.
   // Los cambios se persisten en Supabase en segundo plano.
-  const deportistasNormalizados = deportistas.map((d) => {
+  const REG = ["Sierra", "Costa", "Amazonía", "Insular"];
+  const deportistasNormalizados = deportistas.map((d, i) => {
+    // Estudiantes de ejemplo sin región: se les asigna una para mostrar el panel por zona
+    if (d.es_ejemplo && !d.region) {
+      const region = REG[[3, 0, 1, 0, 2, 0, 1, 0][i % 8] === 3 && i % 16 !== 0 ? 0 : [3, 0, 1, 0, 2, 0, 1, 0][i % 8]];
+      d = { ...d, region };
+      supabase.from("deportistas").update({ region }).eq("id", d.id).then(() => {});
+    }
     const facNorm = normalizarFacultad(d.facultad);
     const carreraNorm = normalizarCarrera(d.carrera, facNorm);
     const cambioFac = facNorm !== d.facultad;
