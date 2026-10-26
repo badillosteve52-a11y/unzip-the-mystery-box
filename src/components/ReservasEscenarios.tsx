@@ -13,6 +13,8 @@ type Reserva = {
   escenario_id: string;
   escenario_nombre: string;
   solicitante: string;
+  telefono: string;
+  carrera: string;
   correo: string | null;
   motivo: string;
   fecha: string;
@@ -43,13 +45,15 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
   const [horaInicio, setHoraInicio] = useState("08:00");
   const [horaFin, setHoraFin] = useState("09:00");
   const [solicitante, setSolicitante] = useState("");
+  const [telefono, setTelefono] = useState("");
+  const [carrera, setCarrera] = useState("");
   const [correo, setCorreo] = useState("");
   const [motivo, setMotivo] = useState("");
 
   const cargarReservas = useCallback(async () => {
     setCargando(true);
     const { data, error } = await reservasDb.from("reservas_escenarios")
-      .select("id, escenario_id, escenario_nombre, solicitante, correo, motivo, fecha, hora_inicio, hora_fin, estado")
+      .select("id, escenario_id, escenario_nombre, solicitante, telefono, carrera, correo, motivo, fecha, hora_inicio, hora_fin, estado")
       .order("fecha", { ascending: true }).order("hora_inicio", { ascending: true });
     if (error) {
       setErrorCarga(error.message);
@@ -67,8 +71,8 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
 
   async function reservar(evento: React.FormEvent<HTMLFormElement>) {
     evento.preventDefault();
-    if (!escenarioId || !solicitante.trim() || !motivo.trim()) {
-      toast.error("Completa el escenario, solicitante y motivo.");
+    if (!escenarioId || !solicitante.trim() || !telefono.trim() || !carrera.trim() || !motivo.trim()) {
+      toast.error("Completa el escenario, nombre, teléfono, carrera y motivo.");
       return;
     }
     if (new Date(`${fecha}T${horaInicio}:00`) < new Date()) {
@@ -86,6 +90,8 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
       escenario_id: escenario.id,
       escenario_nombre: escenario.nombre,
       solicitante: solicitante.trim(),
+      telefono: telefono.trim(),
+      carrera: carrera.trim(),
       correo: correo.trim() || null,
       motivo: motivo.trim(),
       fecha,
@@ -99,7 +105,7 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
       return;
     }
     toast.success("Reserva registrada.");
-    setSolicitante(""); setCorreo(""); setMotivo("");
+    setSolicitante(""); setTelefono(""); setCarrera(""); setCorreo(""); setMotivo("");
     await cargarReservas();
   }
 
@@ -113,8 +119,8 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
   function exportarPdf() {
     const ventana = window.open("", "_blank");
     if (!ventana) { toast.error("Permite las ventanas emergentes para exportar las reservas."); return; }
-    const filas = reservas.map((r) => `<tr><td>${escaparHtml(r.fecha)}</td><td>${escaparHtml(r.hora_inicio.slice(0, 5))}–${escaparHtml(r.hora_fin.slice(0, 5))}</td><td>${escaparHtml(r.escenario_nombre)}</td><td>${escaparHtml(r.solicitante)}</td><td>${escaparHtml(r.correo ?? "—")}</td><td>${escaparHtml(r.motivo)}</td><td>${escaparHtml(r.estado)}</td></tr>`).join("");
-    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reservas de escenarios deportivos</title><style>body{font:12px Arial,sans-serif;color:#172033;margin:28px}h1{font-size:20px}p{color:#4b5563}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left;vertical-align:top}th{background:#eef2f7} @media print{body{margin:12mm}}</style></head><body><h1>Reservas de escenarios deportivos</h1><p>Generado el ${escaparHtml(fechaLocal())} · ${reservas.length} reservas</p><table><thead><tr><th>Fecha</th><th>Horario</th><th>Escenario</th><th>Solicitante</th><th>Correo</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="7">No hay reservas registradas.</td></tr>'}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`);
+    const filas = reservas.map((r) => `<tr><td>${escaparHtml(r.fecha)}</td><td>${escaparHtml(r.hora_inicio.slice(0, 5))}–${escaparHtml(r.hora_fin.slice(0, 5))}</td><td>${escaparHtml(r.escenario_nombre)}</td><td>${escaparHtml(r.solicitante)}</td><td>${escaparHtml(r.telefono)}</td><td>${escaparHtml(r.carrera)}</td><td>${escaparHtml(r.correo ?? "—")}</td><td>${escaparHtml(r.motivo)}</td><td>${escaparHtml(r.estado)}</td></tr>`).join("");
+    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reservas de escenarios deportivos</title><style>body{font:12px Arial,sans-serif;color:#172033;margin:28px}h1{font-size:20px}p{color:#4b5563}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left;vertical-align:top}th{background:#eef2f7} @media print{body{margin:12mm}}</style></head><body><h1>Reservas de escenarios deportivos</h1><p>Generado el ${escaparHtml(fechaLocal())} · ${reservas.length} reservas</p><table><thead><tr><th>Fecha</th><th>Horario</th><th>Escenario</th><th>Nombre</th><th>Teléfono</th><th>Carrera</th><th>Correo</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="9">No hay reservas registradas.</td></tr>'}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`);
     ventana.document.close();
   }
 
@@ -129,7 +135,9 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
         <div className="space-y-1.5 lg:col-span-2"><Label htmlFor="reserva-escenario">Escenario</Label><select id="reserva-escenario" required value={escenarioId} onChange={(e) => setEscenarioId(e.target.value)} className="h-10 w-full rounded-md border bg-background px-3 text-sm"><option value="">Selecciona un escenario</option>{escenariosOrdenados.map((e) => <option key={e.id} value={e.id}>{e.nombre}</option>)}</select></div>
         <div className="space-y-1.5"><Label htmlFor="reserva-fecha">Fecha</Label><Input id="reserva-fecha" type="date" min={fechaLocal()} required value={fecha} onChange={(e) => setFecha(e.target.value)} /></div>
         <div className="grid grid-cols-2 gap-2"><div className="space-y-1.5"><Label htmlFor="reserva-inicio">Desde</Label><Input id="reserva-inicio" type="time" required value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} /></div><div className="space-y-1.5"><Label htmlFor="reserva-fin">Hasta</Label><Input id="reserva-fin" type="time" required value={horaFin} onChange={(e) => setHoraFin(e.target.value)} /></div></div>
-        <div className="space-y-1.5"><Label htmlFor="reserva-solicitante">Solicitante</Label><Input id="reserva-solicitante" required value={solicitante} onChange={(e) => setSolicitante(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="reserva-solicitante">Nombre completo</Label><Input id="reserva-solicitante" required value={solicitante} onChange={(e) => setSolicitante(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="reserva-telefono">Número de teléfono</Label><Input id="reserva-telefono" type="tel" required value={telefono} onChange={(e) => setTelefono(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="reserva-carrera">Carrera</Label><Input id="reserva-carrera" required value={carrera} onChange={(e) => setCarrera(e.target.value)} /></div>
         <div className="space-y-1.5"><Label htmlFor="reserva-correo">Correo (opcional)</Label><Input id="reserva-correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} /></div>
         <div className="space-y-1.5 lg:col-span-2"><Label htmlFor="reserva-motivo">Actividad o motivo</Label><Input id="reserva-motivo" required value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
         <div className="flex items-end"><Button type="submit" disabled={guardando || !escenarios.length}><Plus className="mr-2 h-4 w-4" />{guardando ? "Guardando…" : "Registrar reserva"}</Button></div>
@@ -138,8 +146,8 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
       {errorCarga && <p role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">La tabla de reservas aún no está disponible en la base de datos. Hay que aplicar la migración de reservas de Supabase para activar el guardado.</p>}
 
       <div className="overflow-x-auto rounded-lg border">
-        <Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Horario</TableHead><TableHead>Escenario</TableHead><TableHead>Solicitante</TableHead><TableHead>Actividad</TableHead><TableHead>Estado</TableHead><TableHead /></TableRow></TableHeader>
-          <TableBody>{reservas.map((r) => <TableRow key={r.id}><TableCell>{r.fecha}</TableCell><TableCell>{r.hora_inicio.slice(0, 5)}–{r.hora_fin.slice(0, 5)}</TableCell><TableCell>{r.escenario_nombre}</TableCell><TableCell>{r.solicitante}</TableCell><TableCell>{r.motivo}</TableCell><TableCell>{r.estado}</TableCell><TableCell><Button type="button" variant="ghost" size="icon" aria-label="Cancelar reserva" onClick={() => void cancelar(r)}><Trash2 className="h-4 w-4" /></Button></TableCell></TableRow>)}
+        <Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Horario</TableHead><TableHead>Escenario</TableHead><TableHead>Nombre</TableHead><TableHead>Teléfono</TableHead><TableHead>Carrera</TableHead><TableHead>Correo</TableHead><TableHead>Actividad</TableHead><TableHead>Estado</TableHead><TableHead /></TableRow></TableHeader>
+          <TableBody>{reservas.map((r) => <TableRow key={r.id}><TableCell>{r.fecha}</TableCell><TableCell>{r.hora_inicio.slice(0, 5)}–{r.hora_fin.slice(0, 5)}</TableCell><TableCell>{r.escenario_nombre}</TableCell><TableCell>{r.solicitante}</TableCell><TableCell>{r.telefono}</TableCell><TableCell>{r.carrera}</TableCell><TableCell>{r.correo ?? "—"}</TableCell><TableCell>{r.motivo}</TableCell><TableCell>{r.estado}</TableCell><TableCell><Button type="button" variant="ghost" size="icon" aria-label="Cancelar reserva" onClick={() => void cancelar(r)}><Trash2 className="h-4 w-4" /></Button></TableCell></TableRow>)}
             {!reservas.length && <TableRow><TableCell colSpan={7} className="py-8 text-center text-muted-foreground">{cargando ? "Cargando reservas…" : "Aún no hay reservas."}</TableCell></TableRow>}</TableBody>
         </Table>
       </div>
