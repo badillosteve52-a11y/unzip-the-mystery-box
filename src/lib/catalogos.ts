@@ -255,6 +255,7 @@ export interface CatalogoEscenario {
 export const TIPOS_ESCENARIOS = [
   "Estadio",
   "Pista Atlética",
+  "Piscina",
   "Cancha Sintética",
   "Cancha de Fútbol Tenis",
   "Cancha de Baloncesto",
@@ -338,6 +339,13 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     nombre: "Gimnasio institucional",
     capacidad: null,
     tipo: "Gimnasio",
+    ubicacion: "Campus Matriz - Centro de Deportes",
+    observaciones: "",
+  },
+  {
+    nombre: "Piscina",
+    capacidad: null,
+    tipo: "Piscina",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
   },
