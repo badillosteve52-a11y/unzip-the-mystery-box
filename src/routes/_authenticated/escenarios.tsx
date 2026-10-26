@@ -16,6 +16,7 @@ const CATEGORIAS = [
   { id: "estadios", label: "Estadios y pistas" },
   { id: "canchas", label: "Canchas" },
   { id: "gimnasio", label: "Gimnasio" },
+  { id: "piscina", label: "Piscina" },
 ] as const;
 
 function Page() {
@@ -37,12 +38,14 @@ function Page() {
     estadiosYPistas: escenarios.filter((e) => ["Estadio", "Pista Atlética"].includes(e.tipo ?? "")).length,
     canchas: escenarios.filter((e) => e.tipo?.toLocaleLowerCase().includes("cancha") ?? false).length,
     gimnasio: escenarios.filter((e) => e.tipo === "Gimnasio").length,
+    piscina: escenarios.filter((e) => e.tipo === "Piscina").length,
   }), [escenarios]);
 
   const filtrados = useMemo(() => {
     if (categoria === "estadios") return escenarios.filter((e) => ["Estadio", "Pista Atlética"].includes(e.tipo ?? ""));
     if (categoria === "canchas") return escenarios.filter((e) => e.tipo?.toLocaleLowerCase().includes("cancha") ?? false);
     if (categoria === "gimnasio") return escenarios.filter((e) => e.tipo === "Gimnasio");
+    if (categoria === "piscina") return escenarios.filter((e) => e.tipo === "Piscina");
     return escenarios;
   }, [escenarios, categoria]);
 
@@ -90,11 +93,11 @@ function Page() {
                 <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
               </summary>
               <div className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
-                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} />)}
+                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} />)}
               </div>
             </details>
           ))}
-          {menus.individuales.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} />)}
+          {menus.individuales.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} />)}
           {!menus.agrupados.length && !menus.individuales.length && <p className="col-span-full rounded-xl border p-8 text-center text-muted-foreground">No hay escenarios en esta categoría.</p>}
         </div>
       </section>
@@ -106,7 +109,7 @@ function Metric({ label, value, icon }: { label: string; value: number; icon: Re
   return <div className="rounded-xl border bg-card p-4 shadow-sm"><div className="flex items-center justify-between text-xs font-medium text-muted-foreground">{label}{icon}</div><div className="mt-2 text-2xl font-bold">{value}</div></div>;
 }
 
-function EscenarioCard({ nombre, tipo, ubicacion }: { nombre: string; tipo: string | null; ubicacion: string | null }) {
-  return <article className="rounded-lg border bg-background p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p>{ubicacion && <p className="mt-1 text-xs text-muted-foreground">{ubicacion}</p>}</article>;
+function EscenarioCard({ nombre, tipo, ubicacion, capacidad }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null }) {
+  return <article className="rounded-lg border bg-background p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p><dl className="mt-3 grid gap-1 text-xs text-muted-foreground"><div><dt className="inline font-medium">Ubicación: </dt><dd className="inline">{ubicacion ?? "No especificada"}</dd></div><div><dt className="inline font-medium">Capacidad: </dt><dd className="inline">{capacidad == null ? "No especificada" : `${capacidad} personas`}</dd></div></dl></article>;
 }
 
