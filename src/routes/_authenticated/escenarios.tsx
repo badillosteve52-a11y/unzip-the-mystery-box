@@ -4,7 +4,8 @@ import { Building2, Dumbbell, Trophy } from "lucide-react";
 import { SimpleCrud } from "@/components/SimpleCrud";
 import { Cargando } from "@/components/PageHeader";
 import { useDatos } from "@/lib/db";
-import { TIPOS_ESCENARIOS, UBICACIONES_ESCENARIOS } from "@/lib/catalogos";
+import { CATALOGO_ESCENARIOS, TIPOS_ESCENARIOS, UBICACIONES_ESCENARIOS } from "@/lib/catalogos";
+import { ReservasEscenarios } from "@/components/ReservasEscenarios";
 
 export const Route = createFileRoute("/_authenticated/escenarios")({
   head: () => ({ meta: [{ title: "Escenarios deportivos — Centro de Deportes ESPOCH" }] }),
@@ -21,7 +22,10 @@ const CATEGORIAS = [
 function Page() {
   const { data } = useDatos();
   const [categoria, setCategoria] = useState<string>("todos");
-  const escenarios = data?.escenarios ?? [];
+  // El catálogo es la lista aprobada: no mostramos los registros antiguos que
+  // siguen guardados en la base de datos mientras se sincroniza el inventario.
+  const nombresAprobados = useMemo(() => new Set(CATALOGO_ESCENARIOS.map((e) => e.nombre.toLocaleLowerCase())), []);
+  const escenarios = (data?.escenarios ?? []).filter((e) => nombresAprobados.has(e.nombre.trim().toLocaleLowerCase()));
 
   const stats = useMemo(() => ({
     total: escenarios.length,
@@ -97,6 +101,7 @@ function Page() {
   );
 
   return (
+    <>
     <SimpleCrud
       tabla="escenarios"
       titulo="Escenarios deportivos"
@@ -104,6 +109,8 @@ function Page() {
       singular="escenario"
       extraTop={extraTop}
       grupoDeFila={(r) => {
+        const catalogo = CATALOGO_ESCENARIOS.find((e) => e.nombre.toLocaleLowerCase() === String(r.nombre ?? "").trim().toLocaleLowerCase());
+        if (catalogo?.grupo) return catalogo.grupo;
         const detalles = r.detalles;
         if (detalles && typeof detalles === "object" && "grupo" in detalles) {
           const grupo = (detalles as { grupo?: unknown }).grupo;
@@ -120,6 +127,8 @@ function Page() {
       ]}
       filas={filtrados}
     />
+    <ReservasEscenarios escenarios={escenarios.map((e) => ({ id: e.id, nombre: e.nombre }))} />
+    </>
   );
 }
 
