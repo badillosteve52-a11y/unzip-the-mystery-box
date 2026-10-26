@@ -53,6 +53,13 @@ function Page() {
     try {
       const { error: e } = await supabase.rpc("definir_coordinador", { _user_id: c.user_id, _es_coordinador: nuevo });
       if (e) throw e;
+      if (esYo && !nuevo) {
+        toast.success("Se cedió la coordinación. Se cerrará esta sesión.");
+        qc.clear();
+        await supabase.auth.signOut();
+        window.location.assign("/auth");
+        return;
+      }
       toast.success(nuevo ? `${c.correo} ya puede entrar` : `Se le quitó el acceso a ${c.correo}`);
       await qc.invalidateQueries({ queryKey: ["cuentas"] });
     } catch (e) {
