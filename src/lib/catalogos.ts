@@ -311,7 +311,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Arena",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley",
+    grupo: "Canchas de vóley playa",
   },
   {
     nombre: "Cancha de ecuavóley de tierra",
@@ -319,7 +319,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de vóley playa",
+    grupo: "Canchas de ecuavóley",
   },
   {
     nombre: "Cancha de fútbol tenis",
