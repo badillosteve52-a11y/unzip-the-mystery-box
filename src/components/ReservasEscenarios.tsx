@@ -36,6 +36,7 @@ function escaparHtml(texto: string) {
 export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [cargando, setCargando] = useState(true);
+  const [errorCarga, setErrorCarga] = useState<string | null>(null);
   const [guardando, setGuardando] = useState(false);
   const [escenarioId, setEscenarioId] = useState("");
   const [fecha, setFecha] = useState(fechaLocal);
@@ -50,8 +51,13 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
     const { data, error } = await reservasDb.from("reservas_escenarios")
       .select("id, escenario_id, escenario_nombre, solicitante, correo, motivo, fecha, hora_inicio, hora_fin, estado")
       .order("fecha", { ascending: true }).order("hora_inicio", { ascending: true });
-    if (error) toast.error(`No se pudieron cargar las reservas: ${error.message}`);
-    else setReservas((data ?? []) as Reserva[]);
+    if (error) {
+      setErrorCarga(error.message);
+      toast.error(`No se pudieron cargar las reservas: ${error.message}`);
+    } else {
+      setErrorCarga(null);
+      setReservas((data ?? []) as Reserva[]);
+    }
     setCargando(false);
   }, []);
 
@@ -128,6 +134,8 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
         <div className="space-y-1.5 lg:col-span-2"><Label htmlFor="reserva-motivo">Actividad o motivo</Label><Input id="reserva-motivo" required value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
         <div className="flex items-end"><Button type="submit" disabled={guardando || !escenarios.length}><Plus className="mr-2 h-4 w-4" />{guardando ? "Guardando…" : "Registrar reserva"}</Button></div>
       </form>
+
+      {errorCarga && <p role="alert" className="rounded-md border border-amber-500/40 bg-amber-500/10 p-3 text-sm">La tabla de reservas aún no está disponible en la base de datos. Hay que aplicar la migración de reservas de Supabase para activar el guardado.</p>}
 
       <div className="overflow-x-auto rounded-lg border">
         <Table><TableHeader><TableRow><TableHead>Fecha</TableHead><TableHead>Horario</TableHead><TableHead>Escenario</TableHead><TableHead>Solicitante</TableHead><TableHead>Actividad</TableHead><TableHead>Estado</TableHead><TableHead /></TableRow></TableHeader>
