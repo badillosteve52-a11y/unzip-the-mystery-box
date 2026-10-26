@@ -15,7 +15,8 @@ const INFO_GRUPOS: Record<string, string> = {
   "Estadios 1 y 2": "Aforo publicado para ambos estadios: 700 aficionados",
   "Pistas atléticas": "Aforo publicado para la pista atlética: 700 aficionados; la ESPOCH no desglosa el dato por pista.",
   "Canchas de tenis": "Aforo publicado para el conjunto: 300 aficionados",
-  "Canchas de ecuavóley y vóley playero": "Aforo publicado para las canchas de ecuavóley y vóley playero en conjunto: 150 aficionados; no está desglosado por cancha.",
+  "Canchas de ecuavóley": "La ESPOCH publica 150 aficionados para el conjunto de canchas de ecuavóley y vóley playero; no desglosa el aforo por cancha.",
+  "Canchas de vóley playa": "La ESPOCH publica 150 aficionados para el conjunto de canchas de ecuavóley y vóley playero; no desglosa el aforo por cancha.",
   "Canchas centrales de básquet": "Aforo publicado para las canchas centrales: 200 aficionados",
 };
 
