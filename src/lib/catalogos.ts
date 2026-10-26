@@ -347,7 +347,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Tenis",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de tenis (5)",
+    grupo: "Canchas de tenis",
   },
   {
     nombre: "Cancha de tenis 2",
@@ -355,7 +355,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Tenis",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de tenis (5)",
+    grupo: "Canchas de tenis",
   },
   {
     nombre: "Cancha de tenis 3",
@@ -363,7 +363,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Tenis",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de tenis (5)",
+    grupo: "Canchas de tenis",
   },
   {
     nombre: "Cancha de tenis 4",
@@ -371,7 +371,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Tenis",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de tenis (5)",
+    grupo: "Canchas de tenis",
   },
   {
     nombre: "Cancha de tenis 5",
@@ -379,7 +379,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Tenis",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de tenis (5)",
+    grupo: "Canchas de tenis",
   },
   {
     nombre: "Cancha de ecuavóley de cemento 1",
@@ -387,7 +387,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley de cemento (3)",
+    grupo: "Canchas de ecuavóley de cemento",
   },
   {
     nombre: "Cancha de ecuavóley de cemento 2",
@@ -395,7 +395,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley de cemento (3)",
+    grupo: "Canchas de ecuavóley de cemento",
   },
   {
     nombre: "Cancha de ecuavóley de cemento 3",
@@ -403,7 +403,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley de cemento (3)",
+    grupo: "Canchas de ecuavóley de cemento",
   },
   {
     nombre: "Cancha central de básquet 1",
@@ -411,7 +411,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Baloncesto",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas centrales de básquet (2)",
+    grupo: "Canchas centrales de básquet",
   },
   {
     nombre: "Cancha central de básquet 2",
@@ -419,7 +419,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Baloncesto",
     ubicacion: "Campus Matriz - Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas centrales de básquet (2)",
+    grupo: "Canchas centrales de básquet",
   },
 ];
 
