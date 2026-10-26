@@ -298,14 +298,6 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     grupo: "Pistas atléticas",
   },
   {
-    nombre: "Pista Estadio 2",
-    capacidad: null,
-    tipo: "Pista Atlética",
-    ubicacion: "Centro de Deportes",
-    observaciones: "",
-    grupo: "Pistas atléticas",
-  },
-  {
     nombre: "Pista de running Estadio 2",
     capacidad: null,
     tipo: "Pista Atlética",
@@ -319,7 +311,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Arena",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley y vóley playero",
+    grupo: "Canchas de ecuavóley",
   },
   {
     nombre: "Cancha de ecuavóley de tierra",
@@ -327,7 +319,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley y vóley playero",
+    grupo: "Canchas de vóley playa",
   },
   {
     nombre: "Cancha de fútbol tenis",
@@ -410,7 +402,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley y vóley playero",
+    grupo: "Canchas de ecuavóley",
   },
   {
     nombre: "Cancha de ecuavóley de cemento 2",
@@ -418,7 +410,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley y vóley playero",
+    grupo: "Canchas de ecuavóley",
   },
   {
     nombre: "Cancha de ecuavóley de cemento 3",
@@ -426,7 +418,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley y vóley playero",
+    grupo: "Canchas de ecuavóley",
   },
   {
     nombre: "Cancha central de básquet 1",
