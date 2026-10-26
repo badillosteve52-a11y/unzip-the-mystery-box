@@ -37,6 +37,7 @@ export function SimpleCrud({
   filas,
   extra,
   extraTop,
+  grupoDeFila,
 }: {
   tabla: "deportes" | "periodos" | "escenarios";
   titulo: string;
@@ -46,6 +47,7 @@ export function SimpleCrud({
   filas: Row[];
   extra?: (r: Row) => React.ReactNode;
   extraTop?: React.ReactNode;
+  grupoDeFila?: (r: Row) => string | null;
 }) {
   const refrescar = useRefrescar();
   const [edit, setEdit] = useState<EditRow | null>(null);
@@ -122,6 +124,40 @@ export function SimpleCrud({
 
   const fmt = (c: Campo, v: unknown) => (c.type === "bool" ? (v ? "Sí" : "No") : v == null || v === "" ? "—" : String(v));
 
+  const columnas = campos.filter((c) => c.type !== "textarea");
+  const renderFila = (r: Row) => (
+    <TableRow key={r.id}>
+      {columnas.map((c, i) => (
+        <TableCell key={c.key} className={i === 0 ? "font-medium" : ""}>
+          {c.badge && r[c.key] ? (
+            <Badge variant="outline" className="font-normal">{fmt(c, r[c.key])}</Badge>
+          ) : fmt(c, r[c.key])}
+        </TableCell>
+      ))}
+      {extra && <TableCell>{extra(r)}</TableCell>}
+      <TableCell className="text-right">
+        <Button size="icon" variant="ghost" onClick={() => setEdit({ ...r })} aria-label="Editar"><Pencil className="h-4 w-4" /></Button>
+        <Button size="icon" variant="ghost" onClick={() => borrar(r)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
+      </TableCell>
+    </TableRow>
+  );
+
+  const grupos = new Map<string, Row[]>();
+  const filasVisuales: Array<{ grupo: string | null; filas: Row[] }> = [];
+  for (const fila of vistas) {
+    const grupo = grupoDeFila?.(fila) ?? null;
+    if (!grupo) {
+      filasVisuales.push({ grupo: null, filas: [fila] });
+    } else if (grupos.has(grupo)) {
+      grupos.get(grupo)?.push(fila);
+    } else {
+      const filas = [fila];
+      grupos.set(grupo, filas);
+      filasVisuales.push({ grupo, filas });
+    }
+  }
+
+
   return (
     <div>
       <PageHeader title={titulo} subtitle={subtitulo}>
@@ -150,27 +186,24 @@ export function SimpleCrud({
             </TableRow>
           </TableHeader>
           <TableBody>
-            {vistas.map((r) => (
-              <TableRow key={r.id}>
-                {campos.filter((c) => c.type !== "textarea").map((c, i) => (
-                  <TableCell key={c.key} className={i === 0 ? "font-medium" : ""}>
-                    {c.badge && r[c.key] ? (
-                      <Badge variant="outline" className="font-normal">
-                        {fmt(c, r[c.key])}
-                      </Badge>
-                    ) : (
-                      fmt(c, r[c.key])
-                    )}
+            {filasVisuales.map(({ grupo, filas }) => {
+              if (!grupo) return renderFila(filas[0]!);
+              return (
+                <TableRow key={grupo}>
+                  <TableCell colSpan={columnas.length + (extra ? 1 : 0) + 1} className="p-3">
+                    <details>
+                      <summary className="cursor-pointer font-semibold">
+                        {grupo} <span className="text-xs font-normal text-muted-foreground">— {filas.length} espacios</span>
+                      </summary>
+                      <div className="mt-3 overflow-hidden rounded-md border">
+                        <Table><TableBody>{filas.map(renderFila)}</TableBody></Table>
+                      </div>
+                    </details>
                   </TableCell>
-                ))}
-                {extra && <TableCell>{extra(r)}</TableCell>}
-                <TableCell className="text-right">
-                  <Button size="icon" variant="ghost" onClick={() => setEdit({ ...r })} aria-label="Editar"><Pencil className="h-4 w-4" /></Button>
-                  <Button size="icon" variant="ghost" onClick={() => borrar(r)} aria-label="Eliminar"><Trash2 className="h-4 w-4" /></Button>
-                </TableCell>
-              </TableRow>
-            ))}
-            {!vistas.length && (
+                </TableRow>
+              );
+            })}
+            {!filasVisuales.length && (
               <TableRow><TableCell colSpan={campos.length + 2} className="py-10 text-center text-muted-foreground">Sin registros</TableCell></TableRow>
             )}
           </TableBody>
@@ -234,3 +267,4 @@ export function SimpleCrud({
     </div>
   );
 }
+
