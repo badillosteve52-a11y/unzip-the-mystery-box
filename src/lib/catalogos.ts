@@ -263,12 +263,13 @@ export const TIPOS_ESCENARIOS = [
   "Cancha de Tenis",
   "Cancha de Arena",
   "Gimnasio",
+  "Coliseo",
 ] as const;
 
 export const UBICACIONES_ESCENARIOS = [
-  "Campus Matriz - Centro de Deportes",
-  "Campus Matriz - Estadio 1",
-  "Campus Matriz - Estadio 2",
+  "Centro de Deportes",
+  "Centro de Educación Física",
+  "No especificada",
 ] as const;
 
 export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
@@ -294,6 +295,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Pista Atlética",
     ubicacion: "Centro de Deportes",
     observaciones: "",
+    grupo: "Pistas atléticas",
   },
   {
     nombre: "Pista Estadio 2",
@@ -301,6 +303,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Pista Atlética",
     ubicacion: "Centro de Deportes",
     observaciones: "",
+    grupo: "Pistas atléticas",
   },
   {
     nombre: "Pista de running Estadio 2",
@@ -308,6 +311,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Pista Atlética",
     ubicacion: "Centro de Deportes",
     observaciones: "",
+    grupo: "Pistas atléticas",
   },
   {
     nombre: "Cancha de vóley playa",
@@ -315,6 +319,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Arena",
     ubicacion: "Centro de Deportes",
     observaciones: "",
+    grupo: "Canchas de ecuavóley y vóley playero",
   },
   {
     nombre: "Cancha de ecuavóley de tierra",
@@ -322,6 +327,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
+    grupo: "Canchas de ecuavóley y vóley playero",
   },
   {
     nombre: "Cancha de fútbol tenis",
@@ -348,6 +354,13 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     nombre: "Piscina",
     capacidad: 200,
     tipo: "Piscina",
+    ubicacion: "Centro de Deportes",
+    observaciones: "",
+  },
+  {
+    nombre: "Coliseo Institucional Politécnico",
+    capacidad: 800,
+    tipo: "Coliseo",
     ubicacion: "Centro de Deportes",
     observaciones: "",
   },
@@ -397,7 +410,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley de cemento",
+    grupo: "Canchas de ecuavóley y vóley playero",
   },
   {
     nombre: "Cancha de ecuavóley de cemento 2",
@@ -405,7 +418,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley de cemento",
+    grupo: "Canchas de ecuavóley y vóley playero",
   },
   {
     nombre: "Cancha de ecuavóley de cemento 3",
@@ -413,7 +426,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
-    grupo: "Canchas de ecuavóley de cemento",
+    grupo: "Canchas de ecuavóley y vóley playero",
   },
   {
     nombre: "Cancha central de básquet 1",
