@@ -59,7 +59,7 @@ function Layout() {
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">
-      <aside className="flex shrink-0 flex-col bg-sidebar text-sidebar-foreground md:w-60">
+      <aside className="flex shrink-0 flex-col bg-sidebar text-sidebar-foreground md:w-64">
         <div className="flex items-center gap-2 px-5 py-5">
           <img src={logoBlanco} alt="Logo ESPOCH" className="h-10 w-auto" />
           <div className="leading-tight">
@@ -75,7 +75,7 @@ function Layout() {
               className="flex items-center gap-3 whitespace-nowrap rounded-md px-3 py-2 text-sm font-medium opacity-80 hover:bg-sidebar-accent hover:opacity-100"
               activeProps={{ className: "bg-sidebar-accent !opacity-100 text-sidebar-primary" }}
             >
-              <n.icon className="h-4 w-4" />
+              <n.icon className="h-4 w-4 shrink-0" />
               {n.label}
             </Link>
           ))}
