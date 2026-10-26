@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, CalendarRange, Dumbbell, Flag, LogOut, ShieldCheck, UserRound, Users, UsersRound } from "lucide-react";
+import { BarChart3, Building2, CalendarRange, Dumbbell, Flag, IdCard, LogOut, ShieldCheck, Users, UsersRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import logoBlanco from "@/assets/espoch-logo-blanco.png";
@@ -18,7 +18,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 const nav = [
   { to: "/panel", label: "Panel", icon: BarChart3 },
-  { to: "/deportistas-selecciones", label: "Deportistas de selecciones", icon: UserRound },
+  { to: "/deportistas-selecciones", label: "Deportistas de selecciones", icon: IdCard },
   { to: "/deportistas-clubes", label: "Deportistas de clubes", icon: Users },
   { to: "/selecciones", label: "Selecciones", icon: Flag },
   { to: "/clubes", label: "Clubes", icon: UsersRound },
