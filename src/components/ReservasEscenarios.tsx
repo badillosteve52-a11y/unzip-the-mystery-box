@@ -75,6 +75,10 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
       toast.error("Completa el escenario, nombre, teléfono, carrera y motivo.");
       return;
     }
+    if (correo.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(correo.trim())) {
+      toast.error("Ingresa un correo válido o deja el campo vacío.");
+      return;
+    }
     if (new Date(`${fecha}T${horaInicio}:00`) < new Date()) {
       toast.error("Selecciona una fecha y hora a partir de este momento.");
       return;
@@ -138,7 +142,7 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
         <div className="space-y-1.5"><Label htmlFor="reserva-solicitante">Nombre completo</Label><Input id="reserva-solicitante" required value={solicitante} onChange={(e) => setSolicitante(e.target.value)} /></div>
         <div className="space-y-1.5"><Label htmlFor="reserva-telefono">Número de teléfono</Label><Input id="reserva-telefono" type="tel" required value={telefono} onChange={(e) => setTelefono(e.target.value)} /></div>
         <div className="space-y-1.5"><Label htmlFor="reserva-carrera">Carrera</Label><Input id="reserva-carrera" required value={carrera} onChange={(e) => setCarrera(e.target.value)} /></div>
-        <div className="space-y-1.5"><Label htmlFor="reserva-correo">Correo (opcional)</Label><Input id="reserva-correo" type="email" value={correo} onChange={(e) => setCorreo(e.target.value)} /></div>
+        <div className="space-y-1.5"><Label htmlFor="reserva-correo">Correo (opcional)</Label><Input id="reserva-correo" type="text" inputMode="email" autoComplete="email" value={correo} onChange={(e) => setCorreo(e.target.value.trim())} /></div>
         <div className="space-y-1.5 lg:col-span-2"><Label htmlFor="reserva-motivo">Actividad o motivo</Label><Input id="reserva-motivo" required value={motivo} onChange={(e) => setMotivo(e.target.value)} /></div>
         <div className="flex items-end"><Button type="submit" disabled={guardando || !escenarios.length}><Plus className="mr-2 h-4 w-4" />{guardando ? "Guardando…" : "Registrar reserva"}</Button></div>
       </form>
