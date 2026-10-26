@@ -11,6 +11,13 @@ export const Route = createFileRoute("/_authenticated/escenarios")({
   component: Page,
 });
 
+const INFO_GRUPOS: Record<string, string> = {
+  "Estadios 1 y 2": "Aforo publicado para ambos estadios: 700 aficionados",
+  "Canchas de tenis": "Aforo publicado para el conjunto: 300 aficionados",
+  "Canchas de ecuavóley de cemento": "La ESPOCH publica 150 aficionados para canchas de ecuavóley y vóley playero en conjunto; no desglosa el aforo por cancha.",
+  "Canchas centrales de básquet": "Aforo publicado para las canchas centrales: 200 aficionados",
+};
+
 const CATEGORIAS = [
   { id: "todos", label: "Todos los escenarios" },
   { id: "estadios", label: "Estadios y pistas" },
@@ -29,7 +36,7 @@ function Page() {
     // quedan fuera de la pantalla hasta que se ejecute la migración de limpieza.
     return CATALOGO_ESCENARIOS.flatMap((cat) => {
       const guardado = data.escenarios.find((e) => e.nombre.trim().toLocaleLowerCase() === cat.nombre.toLocaleLowerCase());
-      return guardado ? [{ ...guardado, grupoCatalogo: cat.grupo ?? null }] : [];
+      return guardado ? [{ ...guardado, capacidad: cat.capacidad, ubicacion: cat.ubicacion, grupoCatalogo: cat.grupo ?? null }] : [];
     });
   }, [data]);
 
@@ -89,7 +96,7 @@ function Page() {
           {menus.agrupados.map(([grupo, miembros]) => (
             <details key={grupo} className="group rounded-xl border bg-card shadow-sm open:sm:col-span-2 open:xl:col-span-3">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-5 hover:bg-muted/40">
-                <span><span className="block text-lg font-semibold">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} canchas · pulsa para desplegar</span></span>
+                <span><span className="block text-lg font-semibold">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} escenarios · {miembros[0]?.ubicacion ?? "Ubicación no especificada"} · pulsa para desplegar</span>{INFO_GRUPOS[grupo] && <span className="mt-1 block text-xs text-muted-foreground">{INFO_GRUPOS[grupo]}</span>}</span>
                 <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
               </summary>
               <div className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
