@@ -71,6 +71,11 @@ function Page() {
   return (
     <div>
       <PageHeader title="Accesos" subtitle="Cuentas registradas en el sistema y quién puede entrar." />
+      <p className="mb-6 rounded-xl border bg-muted/40 p-4 text-sm text-muted-foreground">
+        Regla de acceso: cuando no hay ningún coordinador, la próxima cuenta nueva que se registre y confirme su correo
+        recibe automáticamente el rol de coordinador. Todas las cuentas registradas después quedan sin acceso hasta que un
+        coordinador se lo dé desde esta pantalla.
+      </p>
 
       <div className="mb-6 rounded-xl border bg-card p-5">
         <h2 className="font-semibold">Invitar a alguien</h2>
