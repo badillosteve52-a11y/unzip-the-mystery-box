@@ -86,6 +86,21 @@ export type Database = {
           },
         ]
       }
+      coordinator_handoff: {
+        Row: {
+          handoff_after: string | null
+          singleton: boolean
+        }
+        Insert: {
+          handoff_after?: string | null
+          singleton?: boolean
+        }
+        Update: {
+          handoff_after?: string | null
+          singleton?: boolean
+        }
+        Relationships: []
+      }
       deportes: {
         Row: {
           created_at: string
@@ -244,6 +259,62 @@ export type Database = {
           nombre?: string
         }
         Relationships: []
+      }
+      reservas_escenarios: {
+        Row: {
+          carrera: string
+          correo: string | null
+          created_at: string
+          escenario_id: string
+          escenario_nombre: string
+          estado: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id: string
+          motivo: string
+          solicitante: string
+          telefono: string
+        }
+        Insert: {
+          carrera?: string
+          correo?: string | null
+          created_at?: string
+          escenario_id: string
+          escenario_nombre: string
+          estado?: string
+          fecha: string
+          hora_fin: string
+          hora_inicio: string
+          id?: string
+          motivo: string
+          solicitante: string
+          telefono?: string
+        }
+        Update: {
+          carrera?: string
+          correo?: string | null
+          created_at?: string
+          escenario_id?: string
+          escenario_nombre?: string
+          estado?: string
+          fecha?: string
+          hora_fin?: string
+          hora_inicio?: string
+          id?: string
+          motivo?: string
+          solicitante?: string
+          telefono?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reservas_escenarios_escenario_id_fkey"
+            columns: ["escenario_id"]
+            isOneToOne: false
+            referencedRelation: "escenarios"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       seleccion_miembros: {
         Row: {
