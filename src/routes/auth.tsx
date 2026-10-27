@@ -74,7 +74,7 @@ function AuthPage() {
           <p className="mt-1 text-sm text-muted-foreground">
             {modo === "in"
               ? "Acceso exclusivo para el coordinador."
-              : "Si no hay coordinador, esta cuenta será coordinadora. Las siguientes no tendrán acceso hasta que se les autorice."}
+              : "La próxima cuenta nueva que confirme su correo recibirá coordinación. Las cuentas posteriores necesitarán autorización."}
           </p>
         </div>
         <div className="space-y-2">
