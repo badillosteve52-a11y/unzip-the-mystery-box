@@ -53,13 +53,6 @@ function Page() {
     try {
       const { error: e } = await supabase.rpc("definir_coordinador", { _user_id: c.user_id, _es_coordinador: nuevo });
       if (e) throw e;
-      if (esYo && !nuevo) {
-        toast.success("Se cedió la coordinación. Se cerrará esta sesión.");
-        qc.clear();
-        await supabase.auth.signOut();
-        window.location.assign("/auth");
-        return;
-      }
       toast.success(nuevo ? `${c.correo} ya puede entrar` : `Se le quitó el acceso a ${c.correo}`);
       await qc.invalidateQueries({ queryKey: ["cuentas"] });
     } catch (e) {
@@ -85,8 +78,8 @@ function Page() {
           <li>
             Comparte el enlace de registro: <span className="font-medium text-foreground">{enlace}</span>
           </li>
-          <li>Si no hay coordinador, la primera cuenta nueva que confirme su correo recibirá coordinación automáticamente.</li>
-          <li>Las demás cuentas deben recibir acceso desde esta pantalla.</li>
+          <li>Tu cuenta conserva la coordinación. La próxima cuenta nueva que confirme su correo también recibirá acceso de coordinación.</li>
+          <li>Las cuentas posteriores deben recibir acceso desde esta pantalla.</li>
         </ol>
         <Button variant="outline" className="mt-4" onClick={copiar}>
           {copiado ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />} Copiar enlace
@@ -117,7 +110,7 @@ function Page() {
                   <Button
                     size="sm"
                     variant={c.es_coordinador ? "outline" : "default"}
-                    disabled={ocupado === c.user_id}
+                    disabled={ocupado === c.user_id || (esYo && c.es_coordinador)}
                     onClick={() => cambiar(c)}
                   >
                     {c.es_coordinador ? (
