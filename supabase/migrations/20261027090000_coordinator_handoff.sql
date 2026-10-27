@@ -21,20 +21,23 @@ begin
   select handoff_after into v_handoff_after
   from public.coordinator_handoff where singleton = true for update;
 
+  if v_handoff_after is not null then
+    if exists (
+      select 1 from auth.users where id = v_user_id and created_at > v_handoff_after
+    ) then
+      insert into public.user_roles (user_id, role) values (v_user_id, 'admin')
+      on conflict (user_id, role) do nothing;
+      update public.coordinator_handoff set handoff_after = null where singleton = true;
+      return true;
+    end if;
+    return public.has_role(v_user_id, 'admin');
+  end if;
+
   if exists (select 1 from public.user_roles where role = 'admin') then
     return public.has_role(v_user_id, 'admin');
   end if;
 
-  if v_handoff_after is not null and not exists (
-    select 1 from auth.users where id = v_user_id and created_at > v_handoff_after
-  ) then
-    return false;
-  end if;
-
   insert into public.user_roles (user_id, role) values (v_user_id, 'admin');
-  if v_handoff_after is not null then
-    update public.coordinator_handoff set handoff_after = null where singleton = true;
-  end if;
   return true;
 end;
 $function$;
@@ -51,12 +54,10 @@ begin
     insert into public.user_roles (user_id, role) values (_user_id, 'admin')
     on conflict (user_id, role) do nothing;
   else
-    delete from public.user_roles where user_id = _user_id and role = 'admin';
     if _user_id = auth.uid() then
-      update public.coordinator_handoff
-      set handoff_after = clock_timestamp()
-      where singleton = true;
+      raise exception 'no puedes quitarte el acceso a ti mismo';
     end if;
+    delete from public.user_roles where user_id = _user_id and role = 'admin';
   end if;
   return true;
 end;
