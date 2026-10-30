@@ -68,6 +68,13 @@ function Page() {
       }
       agrupados.set(escenario.grupoCatalogo, [...(agrupados.get(escenario.grupoCatalogo) ?? []), escenario]);
     }
+    // Un conjunto con una sola cancha no tiene nada que desplegar: se muestra como tarjeta suelta.
+    for (const [grupo, miembros] of [...agrupados.entries()]) {
+      if (miembros.length < 2) {
+        agrupados.delete(grupo);
+        individuales.push(...miembros);
+      }
+    }
     return { agrupados: [...agrupados.entries()], individuales };
   }, [filtrados]);
 
