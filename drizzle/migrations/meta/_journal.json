@@ -29,6 +29,13 @@
       "when": 1793032869019,
       "tag": "0003_deportistas_region",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1793375949730,
+      "tag": "0004_handoff_coordinador_compartido",
+      "breakpoints": true
     }
   ]
 }
