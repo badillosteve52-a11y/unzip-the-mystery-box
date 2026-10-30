@@ -12,11 +12,11 @@ export const Route = createFileRoute("/_authenticated/escenarios")({
 });
 
 const INFO_GRUPOS: Record<string, string> = {
-  "Estadios 1 y 2": "Aforo publicado para ambos estadios: 700 aficionados",
-  "Pistas atléticas": "Aforo publicado para la pista atlética: 700 aficionados; la ESPOCH no desglosa el dato por pista.",
-  "Canchas de tenis": "Aforo publicado para el conjunto: 300 aficionados",
-  "Canchas de ecuavóley": "La ESPOCH publica 150 aficionados para el conjunto de canchas de ecuavóley y vóley playero; no desglosa el aforo por cancha.",
-  "Canchas centrales de básquet": "Aforo publicado para las canchas centrales: 200 aficionados",
+  "Estadios 1 y 2": "Aforo oficial conjunto: 700 aficionados. Estimación por cancha: 350 aficionados.",
+  "Pistas atléticas": "Aforo oficial publicado para la pista atlética: 700 aficionados. La pista de running del Estadio 2 usa un estimado de 350.",
+  "Canchas de tenis": "Aforo oficial del conjunto: 300 aficionados. Estimación distribuida: 60 por cancha.",
+  "Canchas de ecuavóley": "Aforo oficial conjunto: 150 aficionados para ecuavóley y vóley playero. Estimación distribuida: 30 por cancha.",
+  "Canchas centrales de básquet": "Aforo oficial del conjunto: 200 aficionados. Estimación distribuida: 100 por cancha.",
 };
 
 const CATEGORIAS = [
@@ -108,11 +108,11 @@ function Page() {
                 <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
               </summary>
               <div className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
-                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadConjunta={Boolean(INFO_GRUPOS[grupo])} />)}
+                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadEstimada={Boolean(CATALOGO_ESCENARIOS.find((c) => c.nombre === e.nombre)?.capacidadEstimada)} />)}
               </div>
             </details>
           ))}
-          {menus.individuales.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} />)}
+          {menus.individuales.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadEstimada={Boolean(CATALOGO_ESCENARIOS.find((c) => c.nombre === e.nombre)?.capacidadEstimada)} />)}
           {!menus.agrupados.length && !menus.individuales.length && <p className="col-span-full rounded-xl border p-8 text-center text-muted-foreground">No hay escenarios en esta categoría.</p>}
         </div>
       </section>
@@ -124,7 +124,7 @@ function Metric({ label, value, icon }: { label: string; value: number; icon: Re
   return <div className="rounded-xl border bg-card p-4 shadow-sm"><div className="flex items-center justify-between text-xs font-medium text-muted-foreground">{label}{icon}</div><div className="mt-2 text-2xl font-bold">{value}</div></div>;
 }
 
-function EscenarioCard({ nombre, tipo, ubicacion, capacidad, capacidadConjunta = false }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null; capacidadConjunta?: boolean }) {
-  return <article className="rounded-lg border bg-background p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p><dl className="mt-3 grid gap-1 text-xs text-muted-foreground"><div><dt className="inline font-medium">Ubicación: </dt><dd className="inline">{ubicacion ?? "No especificada"}</dd></div><div><dt className="inline font-medium">Capacidad: </dt><dd className="inline">{capacidadConjunta ? "Incluida en el aforo del conjunto arriba" : capacidad == null ? "No publicada por la ESPOCH" : `${capacidad} aficionados`}</dd></div></dl></article>;
+function EscenarioCard({ nombre, tipo, ubicacion, capacidad, capacidadEstimada = false }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null; capacidadEstimada?: boolean }) {
+  return <article className="rounded-lg border bg-background p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p><dl className="mt-3 grid gap-1 text-xs text-muted-foreground"><div><dt className="inline font-medium">Ubicación: </dt><dd className="inline">{ubicacion ?? "No especificada"}</dd></div><div><dt className="inline font-medium">Capacidad: </dt><dd className="inline">{capacidad == null ? "No publicada por la ESPOCH" : `${capacidad} aficionados${capacidadEstimada ? " (estimado)" : " (dato oficial)"}`}</dd></div></dl></article>;
 }
 
