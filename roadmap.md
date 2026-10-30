@@ -1,5 +1,7 @@
 # Roadmap
 
+- [ ] Completar información visible de escenarios con ubicaciones verificadas y uso deportivo orientativo, y verificar con una cuenta real
+
 - [x] Habilitar Lovable Cloud en el proyecto
 - [x] Aplicar la migración de la columna `region` en deportistas
 - [x] Regenerar los tipos de la base de datos
