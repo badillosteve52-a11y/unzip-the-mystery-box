@@ -1,10 +1,11 @@
+import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { SimpleCrud } from "@/components/SimpleCrud";
 import { Cargando } from "@/components/PageHeader";
 import { useDatos } from "@/lib/db";
 
 export const Route = createFileRoute("/_authenticated/deportes")({
-  head: () => ({ meta: [{ title: "Deportes — Centro de Deportes ESPOCH" }] }),
+  head: () => routeMeta("Deportes", "Catálogo de disciplinas deportivas y participación de deportistas de la ESPOCH."),
   component: Page,
 });
 

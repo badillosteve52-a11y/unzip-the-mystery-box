@@ -1,10 +1,11 @@
+import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { GrupoModule } from "@/components/GrupoModule";
 import { Cargando } from "@/components/PageHeader";
 import { useDatos } from "@/lib/db";
 
 export const Route = createFileRoute("/_authenticated/selecciones")({
-  head: () => ({ meta: [{ title: "Selecciones — Centro de Deportes ESPOCH" }] }),
+  head: () => routeMeta("Selecciones", "Selecciones deportivas de la ESPOCH e integrantes por disciplina y período."),
   component: Page,
 });
 

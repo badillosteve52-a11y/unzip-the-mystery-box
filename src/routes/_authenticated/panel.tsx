@@ -1,3 +1,4 @@
+import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
@@ -12,7 +13,7 @@ import { REGIONES } from "@/components/DeportistasLista";
 import { LISTA_FACULTADES, getCarrerasPorFacultad } from "@/lib/catalogos";
 
 export const Route = createFileRoute("/_authenticated/panel")({
-  head: () => ({ meta: [{ title: "Panel — Centro de Deportes ESPOCH" }] }),
+  head: () => routeMeta("Panel", "Estadísticas de deportistas, regiones, facultades, clubes y selecciones de la ESPOCH."),
   component: Panel,
 });
 
