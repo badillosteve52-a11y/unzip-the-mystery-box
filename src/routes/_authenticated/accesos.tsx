@@ -1,3 +1,4 @@
+import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -10,7 +11,7 @@ import { Cargando, PageHeader } from "@/components/PageHeader";
 import { errMsg } from "@/lib/db";
 
 export const Route = createFileRoute("/_authenticated/accesos")({
-  head: () => ({ meta: [{ title: "Accesos — Centro de Deportes ESPOCH" }] }),
+  head: () => routeMeta("Accesos", "Administración de cuentas y permisos de acceso al Centro de Deportes ESPOCH."),
   component: Page,
 });
 

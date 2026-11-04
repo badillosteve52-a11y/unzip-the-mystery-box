@@ -16,3 +16,5 @@
 - Age is never stored; it is computed from `fecha_nacimiento` in `src/lib/edad.ts` — stays correct over time.
 - Sample rows carry `es_ejemplo = true` so they can be wiped with one action without touching real data.
 - All app data is loaded once via `useDatos()` (`src/lib/db.ts`) and filtered client-side — dataset is small and it keeps filters instant.
+- Venue presentation references live in `src/lib/escenarios-info.ts`, separate from persisted spectator capacities, so generic player counts never become official occupancy limits.
+- Content routes use `routeMeta` for page-specific metadata so shared defaults do not replace distinct page descriptions.

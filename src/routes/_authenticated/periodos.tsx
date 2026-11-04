@@ -1,10 +1,11 @@
+import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { SimpleCrud } from "@/components/SimpleCrud";
 import { Cargando } from "@/components/PageHeader";
 import { useDatos } from "@/lib/db";
 
 export const Route = createFileRoute("/_authenticated/periodos")({
-  head: () => ({ meta: [{ title: "Períodos académicos — Centro de Deportes ESPOCH" }] }),
+  head: () => routeMeta("Períodos académicos", "Gestión de períodos académicos e historial deportivo de la ESPOCH."),
   component: Page,
 });
 

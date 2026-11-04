@@ -1,6 +1,7 @@
 # Roadmap
 
-- [ ] Completar información visible de escenarios con ubicaciones verificadas y uso deportivo orientativo, y verificar con una cuenta real
+- [x] Completar información visible de escenarios con ubicaciones verificadas y uso deportivo orientativo, y verificar con una cuenta real
+- [x] Mostrar dos canchas de fútbol tenis agrupadas y conservar las reservas existentes
 
 - [x] Habilitar Lovable Cloud en el proyecto
 - [x] Aplicar la migración de la columna `region` en deportistas

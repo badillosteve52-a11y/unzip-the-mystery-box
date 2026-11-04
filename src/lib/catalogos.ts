@@ -269,13 +269,13 @@ export const TIPOS_ESCENARIOS = [
 export const UBICACIONES_ESCENARIOS = [
   "Centro de Deportes",
   "Centro de Educación Física",
-  "No especificada",
+  "Campus ESPOCH, Riobamba",
 ] as const;
 
 export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   {
     nombre: "Estadio 1",
-    capacidad: 350,
+    capacidad: null,
     tipo: "Estadio",
     ubicacion: "Centro de Deportes",
     observaciones: "",
@@ -283,7 +283,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Estadio 2",
-    capacidad: 350,
+    capacidad: null,
     tipo: "Estadio",
     ubicacion: "Centro de Deportes",
     observaciones: "",
@@ -291,7 +291,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Pista atlética Estadio 1",
-    capacidad: 700,
+    capacidad: null,
     tipo: "Pista Atlética",
     ubicacion: "Centro de Deportes",
     observaciones: "",
@@ -299,7 +299,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Pista de running Estadio 2",
-    capacidad: 350,
+    capacidad: null,
     tipo: "Pista Atlética",
     ubicacion: "Centro de Deportes",
     observaciones: "",
@@ -307,24 +307,33 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de vóley playa",
-    capacidad: 30,
+    capacidad: null,
     tipo: "Cancha de Arena",
     ubicacion: "Centro de Deportes",
     observaciones: "",
   },
   {
     nombre: "Cancha de ecuavóley de tierra",
-    capacidad: 30,
+    capacidad: null,
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
   },
   {
-    nombre: "Cancha de fútbol tenis",
-    capacidad: 20,
+    nombre: "Cancha de fútbol tenis 1",
+    capacidad: null,
     tipo: "Cancha de Fútbol Tenis",
-    ubicacion: "Centro de Deportes",
+    ubicacion: "Campus ESPOCH, Riobamba",
     observaciones: "",
+    grupo: "Canchas de fútbol tenis",
+  },
+  {
+    nombre: "Cancha de fútbol tenis 2",
+    capacidad: null,
+    tipo: "Cancha de Fútbol Tenis",
+    ubicacion: "Campus ESPOCH, Riobamba",
+    observaciones: "",
+    grupo: "Canchas de fútbol tenis",
   },
   {
     nombre: "Cancha sintética de fútbol",
@@ -356,7 +365,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de tenis 1",
-    capacidad: 60,
+    capacidad: null,
     tipo: "Cancha de Tenis",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
@@ -364,7 +373,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de tenis 2",
-    capacidad: 60,
+    capacidad: null,
     tipo: "Cancha de Tenis",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
@@ -372,7 +381,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de tenis 3",
-    capacidad: 60,
+    capacidad: null,
     tipo: "Cancha de Tenis",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
@@ -380,7 +389,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de tenis 4",
-    capacidad: 60,
+    capacidad: null,
     tipo: "Cancha de Tenis",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
@@ -388,7 +397,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de tenis 5",
-    capacidad: 60,
+    capacidad: null,
     tipo: "Cancha de Tenis",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
@@ -396,7 +405,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de ecuavóley de cemento 1",
-    capacidad: 30,
+    capacidad: null,
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
@@ -404,7 +413,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de ecuavóley de cemento 2",
-    capacidad: 30,
+    capacidad: null,
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
@@ -412,7 +421,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha de ecuavóley de cemento 3",
-    capacidad: 30,
+    capacidad: null,
     tipo: "Cancha de Ecuavóley",
     ubicacion: "Centro de Deportes",
     observaciones: "",
@@ -420,7 +429,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha central de básquet 1",
-    capacidad: 100,
+    capacidad: null,
     tipo: "Cancha de Baloncesto",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
@@ -428,7 +437,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Cancha central de básquet 2",
-    capacidad: 100,
+    capacidad: null,
     tipo: "Cancha de Baloncesto",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
