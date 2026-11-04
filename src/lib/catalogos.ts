@@ -269,7 +269,7 @@ export const TIPOS_ESCENARIOS = [
 export const UBICACIONES_ESCENARIOS = [
   "Centro de Deportes",
   "Centro de Educación Física",
-  "No especificada",
+  "Campus ESPOCH, Riobamba",
 ] as const;
 
 export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
@@ -320,11 +320,20 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     observaciones: "",
   },
   {
-    nombre: "Cancha de fútbol tenis",
+    nombre: "Cancha de fútbol tenis 1",
     capacidad: null,
     tipo: "Cancha de Fútbol Tenis",
-    ubicacion: "No especificada",
+    ubicacion: "Campus ESPOCH, Riobamba",
     observaciones: "",
+    grupo: "Canchas de fútbol tenis",
+  },
+  {
+    nombre: "Cancha de fútbol tenis 2",
+    capacidad: null,
+    tipo: "Cancha de Fútbol Tenis",
+    ubicacion: "Campus ESPOCH, Riobamba",
+    observaciones: "",
+    grupo: "Canchas de fútbol tenis",
   },
   {
     nombre: "Cancha sintética de fútbol",
