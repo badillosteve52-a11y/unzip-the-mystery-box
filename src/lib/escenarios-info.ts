@@ -28,7 +28,7 @@ export function usoDeportivo(tipo: string | null): string {
 }
 
 export function ubicacionEscenario(ubicacion: string | null): string {
-  return !ubicacion?.trim() || ubicacion.toLowerCase().includes("no especificada")
+  return !ubicacion?.trim() || ubicacion.toLowerCase().includes("no especificada") || ubicacion.toLowerCase().startsWith("campus espoch")
     ? DIRECCION_CAMPUS
     : `${ubicacion} · ${DIRECCION_CAMPUS}`;
 }
