@@ -164,7 +164,7 @@ function Layout() {
             <div className="min-h-0 flex-1 overflow-y-auto px-3 py-3">
               <NavLista activo={pathname} onNavigate={() => setAbierto(false)} />
             </div>
-            <Pie email={user.email} onSalir={salir} onNavigate={() => setAbierto(false)} />
+            <Pie email={user.email ?? ""} onSalir={salir} onNavigate={() => setAbierto(false)} />
           </SheetContent>
         </Sheet>
       </header>
@@ -181,7 +181,7 @@ function Layout() {
         <div className="min-h-0 flex-1 overflow-y-auto px-3 pb-3">
           <NavLista activo={pathname} />
         </div>
-        <Pie email={user.email} onSalir={salir} />
+        <Pie email={user.email ?? ""} onSalir={salir} />
       </aside>
 
       <main className="min-w-0 flex-1 p-4 md:p-8">
