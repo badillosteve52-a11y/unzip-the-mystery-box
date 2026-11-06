@@ -1,6 +1,6 @@
 import { createFileRoute, Link, Outlet, redirect, useNavigate } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, CalendarRange, Dumbbell, Flag, LogOut, ShieldCheck, Users, UsersRound } from "lucide-react";
+import { BarChart3, Building2, CalendarRange, Dumbbell, Flag, LogOut, Medal, ShieldCheck, Shirt, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import logoBlanco from "@/assets/espoch-logo-blanco.png";
@@ -18,10 +18,10 @@ export const Route = createFileRoute("/_authenticated")({
 
 const nav = [
   { to: "/panel", label: "Panel", icon: BarChart3 },
-  { to: "/deportistas-selecciones", label: "Deportistas de selecciones", icon: UsersRound },
-  { to: "/deportistas-clubes", label: "Deportistas de clubes", icon: Users },
+  { to: "/deportistas-selecciones", label: "Deportistas de selecciones", icon: Medal },
+  { to: "/deportistas-clubes", label: "Deportistas de clubes", icon: Shirt },
   { to: "/selecciones", label: "Selecciones", icon: Flag },
-  { to: "/clubes", label: "Clubes", icon: UsersRound },
+  { to: "/clubes", label: "Clubes", icon: Trophy },
   { to: "/deportes", label: "Deportes", icon: Dumbbell },
   { to: "/escenarios", label: "Escenarios", icon: Building2 },
   { to: "/periodos", label: "Períodos", icon: CalendarRange },
