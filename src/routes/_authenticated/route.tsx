@@ -98,7 +98,7 @@ function Layout() {
   const { esAdmin, user } = Route.useRouteContext();
   const qc = useQueryClient();
   const navigate = useNavigate();
-  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const pathname = useRouterState({ select: (s) => s.location.pathname ?? "" });
   const [abierto, setAbierto] = useState(false);
 
   const actual = nav.find((n) => n.to === pathname) ?? nav[0];
