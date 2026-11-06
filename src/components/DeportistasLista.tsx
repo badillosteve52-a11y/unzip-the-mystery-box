@@ -351,10 +351,10 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
       {/* Dialog para Crear/Editar Deportista */}
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] max-w-lg overflow-y-auto p-4 sm:p-6">
           <DialogHeader><DialogTitle>{edit?.id ? "Editar deportista" : "Nuevo deportista"}</DialogTitle></DialogHeader>
           {edit && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <div className="space-y-1.5">
                 <Label>Cédula</Label>
                 <Input value={edit.cedula ?? ""} onChange={(e) => setEdit({ ...edit, cedula: e.target.value })} />
@@ -383,7 +383,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                 </select>
               </div>
               {!edit.id && (
-                <div className="col-span-2 space-y-1.5">
+                <div className="space-y-1.5 sm:col-span-2">
                   <Label>{esSel ? "Selección" : "Club"}</Label>
                   <select
                     className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
@@ -452,10 +452,10 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                 </select>
               </div>
 
-              <div className="col-span-2 text-sm text-muted-foreground">
+              <div className="text-sm text-muted-foreground sm:col-span-2">
                 Edad: <strong className="text-foreground">{calcularEdad(edit.fecha_nacimiento) ?? "—"}</strong> (se calcula automáticamente)
               </div>
-              <div className="col-span-2 space-y-1.5">
+              <div className="space-y-1.5 sm:col-span-2">
                 <Label>Deportes</Label>
                 <div className="flex flex-wrap gap-3 rounded-md border p-3">
                   {data.deportes.map((d) => (
