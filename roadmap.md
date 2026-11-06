@@ -8,3 +8,5 @@
 - [x] Regenerar los tipos de la base de datos
 - [x] Activar el acceso con correo y contraseña
 - [x] Probar el panel y las pestañas de deportistas con una cuenta real — verificado con la cuenta de coordinador: panel con gráficos con datos y las dos pestañas cargando (8 y 4 filas)
+
+- [x] Menú lateral: iconos y etiquetas claros y distintos en pantallas pequeñas
