@@ -156,7 +156,7 @@ function Layout() {
               <div className="flex items-center gap-3 pr-10">
                 <img src={logoBlanco} alt="Logo ESPOCH" className="h-9 w-auto shrink-0" />
                 <div className="min-w-0 leading-tight">
-                  <SheetTitle className="truncate font-display text-sm font-bold">Centro de Deportes</SheetTitle>
+                  <SheetTitle className="truncate font-display text-sm font-bold text-sidebar-foreground">Centro de Deportes</SheetTitle>
                   <div className="truncate text-xs opacity-75">ESPOCH</div>
                 </div>
               </div>
