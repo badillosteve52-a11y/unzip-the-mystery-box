@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
-import { Building2, ChevronDown, Dumbbell, Trophy } from "lucide-react";
+import { Building2, ChevronDown, Dumbbell, Table2, Trophy, Waves } from "lucide-react";
 import { Cargando } from "@/components/PageHeader";
 import { ReservasEscenarios } from "@/components/ReservasEscenarios";
 import { useDatos } from "@/lib/db";
@@ -49,7 +49,7 @@ function Page() {
     estadiosYPistas: escenarios.filter((e) => ["Estadio", "Pista Atlética"].includes(e.tipo ?? "")).length,
     canchas: escenarios.filter((e) => e.tipo?.toLocaleLowerCase().includes("cancha") ?? false).length,
     gimnasio: escenarios.filter((e) => e.tipo === "Gimnasio").length,
-    piscina: escenarios.filter((e) => e.tipo === "Piscina").length,
+    piscina: escenarios.filter((e) => e.tipo === "Piscina").length, coliseo: escenarios.filter((e) => e.tipo === "Coliseo").length, tenisMesa: escenarios.filter((e) => e.tipo === "Sala de Tenis de Mesa").length,
   }), [escenarios]);
 
   const filtrados = useMemo(() => {
@@ -92,11 +92,11 @@ function Page() {
       <ReservasEscenarios escenarios={escenarios.map((e) => ({ id: e.id, nombre: e.nombre }))} />
 
       <section className="space-y-5">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
           <Metric label="Escenarios vigentes" value={stats.total} icon={<Building2 className="h-4 w-4 text-primary" />} />
           <Metric label="Estadios y pistas" value={stats.estadiosYPistas} icon={<Trophy className="h-4 w-4 text-primary" />} />
           <Metric label="Canchas" value={stats.canchas} icon={<Trophy className="h-4 w-4 text-primary" />} />
-          <Metric label="Gimnasios" value={stats.gimnasio} icon={<Dumbbell className="h-4 w-4 text-primary" />} />
+          <Metric label="Gimnasios" value={stats.gimnasio} icon={<Dumbbell className="h-4 w-4 text-primary" />} /> <Metric label="Piscinas" value={stats.piscina} icon={<Waves className="h-4 w-4 text-primary" />} /> <Metric label="Coliseos" value={stats.coliseo} icon={<Building2 className="h-4 w-4 text-primary" />} /> <Metric label="Salas de tenis de mesa" value={stats.tenisMesa} icon={<Table2 className="h-4 w-4 text-primary" />} />
         </div>
 
         <div className="flex flex-wrap gap-2" aria-label="Filtrar escenarios">
