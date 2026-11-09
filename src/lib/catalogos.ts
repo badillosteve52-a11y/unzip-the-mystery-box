@@ -352,7 +352,7 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
   },
   {
     nombre: "Sala de tenis de mesa",
-    capacidad: null,
+    capacidad: 50,
     tipo: "Sala de Tenis de Mesa",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
