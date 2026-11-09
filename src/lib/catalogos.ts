@@ -263,6 +263,7 @@ export const TIPOS_ESCENARIOS = [
   "Cancha de Tenis",
   "Cancha de Arena",
   "Gimnasio",
+  "Sala de Tenis de Mesa",
   "Coliseo",
 ] as const;
 
@@ -346,6 +347,13 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     nombre: "Gimnasio institucional",
     capacidad: 100,
     tipo: "Gimnasio",
+    ubicacion: "Centro de Educación Física",
+    observaciones: "",
+  },
+  {
+    nombre: "Sala de tenis de mesa",
+    capacidad: null,
+    tipo: "Sala de Tenis de Mesa",
     ubicacion: "Centro de Educación Física",
     observaciones: "",
   },
