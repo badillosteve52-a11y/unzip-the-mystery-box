@@ -23,7 +23,16 @@ export function exportarPDF(filas: Record<string, unknown>[], nombre: string) {
     styles: { fontSize: 8, cellPadding: 1.5 },
     headStyles: { fillColor: [27, 94, 32] },
   });
-  doc.save(`${nombre}.pdf`);
+  // Forzar descarga: tipo genérico evita que el navegador abra el visor/impresión
+  const blob = new Blob([doc.output("arraybuffer")], { type: "application/octet-stream" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${nombre}.pdf`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 30_000);
 }
 
 export async function leerArchivo(file: File): Promise<Record<string, unknown>[]> {
