@@ -3,6 +3,7 @@ import { Download, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CATALOGO_ESCENARIOS } from "@/lib/catalogos";
+import { exportarPDF } from "@/lib/excel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -121,11 +122,17 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
   }
 
   function exportarPdf() {
-    const ventana = window.open("", "_blank");
-    if (!ventana) { toast.error("Permite las ventanas emergentes para exportar las reservas."); return; }
-    const filas = reservas.map((r) => `<tr><td>${escaparHtml(r.fecha)}</td><td>${escaparHtml(r.hora_inicio.slice(0, 5))}–${escaparHtml(r.hora_fin.slice(0, 5))}</td><td>${escaparHtml(r.escenario_nombre)}</td><td>${escaparHtml(r.solicitante)}</td><td>${escaparHtml(r.telefono)}</td><td>${escaparHtml(r.carrera)}</td><td>${escaparHtml(r.correo ?? "—")}</td><td>${escaparHtml(r.motivo)}</td><td>${escaparHtml(r.estado)}</td></tr>`).join("");
-    ventana.document.write(`<!doctype html><html lang="es"><head><meta charset="utf-8"><title>Reservas de escenarios deportivos</title><style>body{font:12px Arial,sans-serif;color:#172033;margin:28px}h1{font-size:20px}p{color:#4b5563}table{width:100%;border-collapse:collapse;margin-top:20px}th,td{border:1px solid #cbd5e1;padding:7px;text-align:left;vertical-align:top}th{background:#eef2f7} @media print{body{margin:12mm}}</style></head><body><h1>Reservas de escenarios deportivos</h1><p>Generado el ${escaparHtml(fechaLocal())} · ${reservas.length} reservas</p><table><thead><tr><th>Fecha</th><th>Horario</th><th>Escenario</th><th>Nombre</th><th>Teléfono</th><th>Carrera</th><th>Correo</th><th>Motivo</th><th>Estado</th></tr></thead><tbody>${filas || '<tr><td colspan="9">No hay reservas registradas.</td></tr>'}</tbody></table><script>window.onload=()=>window.print()</script></body></html>`);
-    ventana.document.close();
+    exportarPDF(reservas.map((r) => ({
+      Fecha: r.fecha,
+      Horario: `${r.hora_inicio.slice(0, 5)}–${r.hora_fin.slice(0, 5)}`,
+      Escenario: r.escenario_nombre,
+      Nombre: r.solicitante,
+      "Teléfono": r.telefono,
+      Carrera: r.carrera,
+      Correo: r.correo ?? "—",
+      Motivo: r.motivo,
+      Estado: r.estado,
+    })), "reservas-escenarios");
   }
 
   return (
