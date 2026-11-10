@@ -1,0 +1,2 @@
+ALTER TABLE public.entrenadores ADD COLUMN club_id uuid REFERENCES public.clubes(id) ON DELETE SET NULL;
+ALTER TABLE public.entrenadores ADD COLUMN seleccion_id uuid REFERENCES public.selecciones(id) ON DELETE SET NULL;

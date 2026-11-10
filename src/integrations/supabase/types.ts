@@ -199,30 +199,51 @@ export type Database = {
           apellido: string
           cargo: string
           cedula: string
+          club_id: string | null
           created_at: string
           es_ejemplo: boolean
           id: string
           nombre: string
+          seleccion_id: string | null
         }
         Insert: {
           apellido: string
           cargo: string
           cedula: string
+          club_id?: string | null
           created_at?: string
           es_ejemplo?: boolean
           id?: string
           nombre: string
+          seleccion_id?: string | null
         }
         Update: {
           apellido?: string
           cargo?: string
           cedula?: string
+          club_id?: string | null
           created_at?: string
           es_ejemplo?: boolean
           id?: string
           nombre?: string
+          seleccion_id?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "entrenadores_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "entrenadores_seleccion_id_fkey"
+            columns: ["seleccion_id"]
+            isOneToOne: false
+            referencedRelation: "selecciones"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       escenarios: {
         Row: {
