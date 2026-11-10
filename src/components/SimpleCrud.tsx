@@ -39,7 +39,7 @@ export function SimpleCrud({
   extraTop,
   grupoDeFila,
 }: {
-  tabla: "deportes" | "periodos" | "escenarios";
+  tabla: "deportes" | "periodos" | "escenarios" | "entrenadores";
   titulo: string;
   subtitulo: string;
   singular: string;
@@ -211,7 +211,7 @@ export function SimpleCrud({
       </div>
 
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader><DialogTitle>{edit?.id ? "Editar" : "Nuevo"} {singular}</DialogTitle></DialogHeader>
           <div className="space-y-3">
             {campos.map((c) => (
@@ -260,7 +260,7 @@ export function SimpleCrud({
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button>
-            <Button onClick={guardar} disabled={!edit?.nombre}>Guardar</Button>
+            <Button onClick={guardar} disabled={!edit || campos.some((c) => c.required && !String(edit[c.key] ?? "").trim())}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

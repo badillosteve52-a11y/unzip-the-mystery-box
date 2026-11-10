@@ -3,6 +3,10 @@ import { CATALOGO_ESCENARIOS } from "./catalogos";
 import { jugadoresPorPartido } from "./escenarios-info";
 
 describe("escenarios deportivos", () => {
+  it("incluye sala de tenis de mesa y sala de ajedrez", () => {
+    expect(CATALOGO_ESCENARIOS.filter((e) => e.nombre === "Sala de tenis de mesa")).toHaveLength(1);
+    expect(CATALOGO_ESCENARIOS.filter((e) => e.nombre === "Sala de ajedrez")).toHaveLength(1);
+  });
   it("incluye las dos canchas de fútbol tenis confirmadas por el usuario", () => {
     const canchas = CATALOGO_ESCENARIOS.filter((e) => e.tipo === "Cancha de Fútbol Tenis");
     expect(canchas.map((e) => e.nombre)).toEqual(["Cancha de fútbol tenis 1", "Cancha de fútbol tenis 2"]);

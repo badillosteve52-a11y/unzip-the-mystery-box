@@ -23,6 +23,7 @@ export function usoDeportivo(tipo: string | null): string {
   if (tipo === "Cancha Sintética") return "Fútbol reducido; número de jugadores según la modalidad de la reserva";
   if (tipo === "Gimnasio") return "Entrenamiento y acondicionamiento físico; grupos según equipos y actividad";
   if (tipo === "Sala de Tenis de Mesa") return "Tenis de mesa: 2 jugadores por mesa en individuales o 4 en dobles · referencia deportiva";
+  if (tipo === "Sala de Ajedrez") return "2 jugadores por tablero · referencia deportiva";
   if (tipo === "Piscina") return "Natación y entrenamiento; grupos según carriles y supervisión";
   if (tipo === "Coliseo") return "Deportes de sala y actividades colectivas, según modalidad";
   return "Práctica deportiva en grupos, según actividad";
