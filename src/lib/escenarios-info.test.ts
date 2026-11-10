@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { CATALOGO_ESCENARIOS } from "./catalogos";
+import { CATALOGO_ESCENARIOS, normalizarCarrera } from "./catalogos";
 import { jugadoresPorPartido } from "./escenarios-info";
 
 describe("escenarios deportivos", () => {
+  it("normaliza Marketing como Mercadotecnia", () => {
+    expect(normalizarCarrera("Marketing", "FACULTAD DE ADMINISTRACIÓN DE EMPRESAS")).toBe("Mercadotecnia");
+  });
   it("incluye sala de tenis de mesa y sala de ajedrez", () => {
     expect(CATALOGO_ESCENARIOS.filter((e) => e.nombre === "Sala de tenis de mesa")).toHaveLength(1);
     expect(CATALOGO_ESCENARIOS.filter((e) => e.nombre === "Sala de ajedrez")).toHaveLength(1);
