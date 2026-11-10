@@ -17,6 +17,7 @@ import { Route as AuthenticatedClubesRouteImport } from './routes/_authenticated
 import { Route as AuthenticatedDeportesRouteImport } from './routes/_authenticated/deportes'
 import { Route as AuthenticatedDeportistasClubesRouteImport } from './routes/_authenticated/deportistas-clubes'
 import { Route as AuthenticatedDeportistasSeleccionesRouteImport } from './routes/_authenticated/deportistas-selecciones'
+import { Route as AuthenticatedEntrenadoresRouteImport } from './routes/_authenticated/entrenadores'
 import { Route as AuthenticatedEscenariosRouteImport } from './routes/_authenticated/escenarios'
 import { Route as AuthenticatedPanelRouteImport } from './routes/_authenticated/panel'
 import { Route as AuthenticatedPeriodosRouteImport } from './routes/_authenticated/periodos'
@@ -63,6 +64,12 @@ const AuthenticatedDeportistasSeleccionesRoute =
     path: '/deportistas-selecciones',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
+const AuthenticatedEntrenadoresRoute =
+  AuthenticatedEntrenadoresRouteImport.update({
+    id: '/entrenadores',
+    path: '/entrenadores',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 const AuthenticatedEscenariosRoute = AuthenticatedEscenariosRouteImport.update({
   id: '/escenarios',
   path: '/escenarios',
@@ -93,6 +100,7 @@ export interface FileRoutesByFullPath {
   '/deportes': typeof AuthenticatedDeportesRoute
   '/deportistas-clubes': typeof AuthenticatedDeportistasClubesRoute
   '/deportistas-selecciones': typeof AuthenticatedDeportistasSeleccionesRoute
+  '/entrenadores': typeof AuthenticatedEntrenadoresRoute
   '/escenarios': typeof AuthenticatedEscenariosRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/periodos': typeof AuthenticatedPeriodosRoute
@@ -106,6 +114,7 @@ export interface FileRoutesByTo {
   '/deportes': typeof AuthenticatedDeportesRoute
   '/deportistas-clubes': typeof AuthenticatedDeportistasClubesRoute
   '/deportistas-selecciones': typeof AuthenticatedDeportistasSeleccionesRoute
+  '/entrenadores': typeof AuthenticatedEntrenadoresRoute
   '/escenarios': typeof AuthenticatedEscenariosRoute
   '/panel': typeof AuthenticatedPanelRoute
   '/periodos': typeof AuthenticatedPeriodosRoute
@@ -121,6 +130,7 @@ export interface FileRoutesById {
   '/_authenticated/deportes': typeof AuthenticatedDeportesRoute
   '/_authenticated/deportistas-clubes': typeof AuthenticatedDeportistasClubesRoute
   '/_authenticated/deportistas-selecciones': typeof AuthenticatedDeportistasSeleccionesRoute
+  '/_authenticated/entrenadores': typeof AuthenticatedEntrenadoresRoute
   '/_authenticated/escenarios': typeof AuthenticatedEscenariosRoute
   '/_authenticated/panel': typeof AuthenticatedPanelRoute
   '/_authenticated/periodos': typeof AuthenticatedPeriodosRoute
@@ -136,6 +146,7 @@ export interface FileRouteTypes {
     | '/deportes'
     | '/deportistas-clubes'
     | '/deportistas-selecciones'
+    | '/entrenadores'
     | '/escenarios'
     | '/panel'
     | '/periodos'
@@ -149,6 +160,7 @@ export interface FileRouteTypes {
     | '/deportes'
     | '/deportistas-clubes'
     | '/deportistas-selecciones'
+    | '/entrenadores'
     | '/escenarios'
     | '/panel'
     | '/periodos'
@@ -163,6 +175,7 @@ export interface FileRouteTypes {
     | '/_authenticated/deportes'
     | '/_authenticated/deportistas-clubes'
     | '/_authenticated/deportistas-selecciones'
+    | '/_authenticated/entrenadores'
     | '/_authenticated/escenarios'
     | '/_authenticated/panel'
     | '/_authenticated/periodos'
@@ -233,6 +246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDeportistasSeleccionesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/entrenadores': {
+      id: '/_authenticated/entrenadores'
+      path: '/entrenadores'
+      fullPath: '/entrenadores'
+      preLoaderRoute: typeof AuthenticatedEntrenadoresRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/_authenticated/escenarios': {
       id: '/_authenticated/escenarios'
       path: '/escenarios'
@@ -270,6 +290,7 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedDeportesRoute: typeof AuthenticatedDeportesRoute
   AuthenticatedDeportistasClubesRoute: typeof AuthenticatedDeportistasClubesRoute
   AuthenticatedDeportistasSeleccionesRoute: typeof AuthenticatedDeportistasSeleccionesRoute
+  AuthenticatedEntrenadoresRoute: typeof AuthenticatedEntrenadoresRoute
   AuthenticatedEscenariosRoute: typeof AuthenticatedEscenariosRoute
   AuthenticatedPanelRoute: typeof AuthenticatedPanelRoute
   AuthenticatedPeriodosRoute: typeof AuthenticatedPeriodosRoute
@@ -283,6 +304,7 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedDeportistasClubesRoute: AuthenticatedDeportistasClubesRoute,
   AuthenticatedDeportistasSeleccionesRoute:
     AuthenticatedDeportistasSeleccionesRoute,
+  AuthenticatedEntrenadoresRoute: AuthenticatedEntrenadoresRoute,
   AuthenticatedEscenariosRoute: AuthenticatedEscenariosRoute,
   AuthenticatedPanelRoute: AuthenticatedPanelRoute,
   AuthenticatedPeriodosRoute: AuthenticatedPeriodosRoute,

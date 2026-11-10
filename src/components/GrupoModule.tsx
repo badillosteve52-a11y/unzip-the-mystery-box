@@ -158,7 +158,7 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
       </div>
 
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
-        <DialogContent className="max-w-lg">
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader><DialogTitle>{edit?.id ? "Editar" : "Nueva"} {singular}</DialogTitle></DialogHeader>
           {edit && (
             <div className="space-y-3">

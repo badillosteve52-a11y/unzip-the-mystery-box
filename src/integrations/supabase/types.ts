@@ -194,6 +194,36 @@ export type Database = {
         }
         Relationships: []
       }
+      entrenadores: {
+        Row: {
+          apellido: string
+          cargo: string
+          cedula: string
+          created_at: string
+          es_ejemplo: boolean
+          id: string
+          nombre: string
+        }
+        Insert: {
+          apellido: string
+          cargo: string
+          cedula: string
+          created_at?: string
+          es_ejemplo?: boolean
+          id?: string
+          nombre: string
+        }
+        Update: {
+          apellido?: string
+          cargo?: string
+          cedula?: string
+          created_at?: string
+          es_ejemplo?: boolean
+          id?: string
+          nombre?: string
+        }
+        Relationships: []
+      }
       escenarios: {
         Row: {
           capacidad: number | null

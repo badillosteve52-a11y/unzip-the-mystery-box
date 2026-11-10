@@ -264,6 +264,7 @@ export const TIPOS_ESCENARIOS = [
   "Cancha de Arena",
   "Gimnasio",
   "Sala de Tenis de Mesa",
+  "Sala de Ajedrez",
   "Coliseo",
 ] as const;
 
@@ -354,7 +355,14 @@ export const CATALOGO_ESCENARIOS: CatalogoEscenario[] = [
     nombre: "Sala de tenis de mesa",
     capacidad: 50,
     tipo: "Sala de Tenis de Mesa",
-    ubicacion: "Centro de Educación Física",
+    ubicacion: "Campus ESPOCH, Riobamba",
+    observaciones: "",
+  },
+  {
+    nombre: "Sala de ajedrez",
+    capacidad: null,
+    tipo: "Sala de Ajedrez",
+    ubicacion: "Campus ESPOCH, Riobamba",
     observaciones: "",
   },
   {

@@ -10,3 +10,8 @@
 - [x] Probar el panel y las pestañas de deportistas con una cuenta real — verificado con la cuenta de coordinador: panel con gráficos con datos y las dos pestañas cargando (8 y 4 filas)
 
 - [x] Menú lateral: iconos y etiquetas claros y distintos en pantallas pequeñas
+- [x] Carrera Marketing → Mercadotecnia
+- [x] Botón para agregar clubes; persistencia comprobada al recargar
+- [x] Períodos académicos 2027–2030 (sep–feb y mar–jul)
+- [x] Salas de ajedrez y tenis de mesa visibles y disponibles para reservas
+- [x] Entrenadores (nombre, apellido, cédula, cargo); guardado y lectura comprobados
