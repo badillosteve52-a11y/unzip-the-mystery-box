@@ -43,6 +43,13 @@
       "when": 1794347006991,
       "tag": "0005_entrenadores",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1794347528376,
+      "tag": "0006_entrenadores_grupos",
+      "breakpoints": true
     }
   ]
 }

@@ -18,5 +18,5 @@
 - All app data is loaded once via `useDatos()` (`src/lib/db.ts`) and filtered client-side — dataset is small and it keeps filters instant.
 - Venue presentation references live in `src/lib/escenarios-info.ts`, separate from persisted spectator capacities, so generic player counts never become official occupancy limits.
 - Content routes use `routeMeta` for page-specific metadata so shared defaults do not replace distinct page descriptions.
-- Coaches use a separate RLS-protected table, the shared data query and SimpleCrud to keep management consistent.
+- Coaches use a separate RLS-protected table with optional club/selection references; create and edit them from group cards rather than a standalone section.
 - Club catalog completion must preserve coordinator-created clubs so new records survive refreshes.

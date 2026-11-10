@@ -28,6 +28,23 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const [deporte, setDeporte] = useState("");
   const [edit, setEdit] = useState<(Partial<Grupo> & { ids: Set<string> }) | null>(null);
   const [q, setQ] = useState("");
+  const [entrenador, setEntrenador] = useState<{ id?: string; grupoId: string; nombre: string; apellido: string; cedula: string; cargo: string } | null>(null);
+  const [guardandoEntrenador, setGuardandoEntrenador] = useState(false);
+
+  async function guardarEntrenador() {
+    if (!entrenador || guardandoEntrenador) return;
+    setGuardandoEntrenador(true);
+    const { id, grupoId, ...campos } = entrenador;
+    const datos = { ...campos, club_id: esSel ? null : grupoId, seleccion_id: esSel ? grupoId : null };
+    const { error } = id
+      ? await supabase.from("entrenadores").update(datos).eq("id", id)
+      : await supabase.from("entrenadores").insert(datos);
+    setGuardandoEntrenador(false);
+    if (error) { toast.error(errMsg(error)); return; }
+    setEntrenador(null);
+    await refrescar();
+    toast.success("Entrenador guardado");
+  }
 
   const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?.nombre ?? "—";
   const nombrePer = (id: string | null) => data.periodos.find((d) => d.id === id)?.nombre ?? "—";
@@ -151,11 +168,30 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
                 })}
                 {ms.length > 5 && <li className="text-muted-foreground">y {ms.length - 5} más…</li>}
               </ul>
+              <div className="mt-4 space-y-2 border-t pt-3">
+                {data.entrenadores.filter((e) => esSel ? e.seleccion_id === g.id : e.club_id === g.id).map((e) => (
+                  <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
+                    <span className="min-w-0 break-words"><span className="font-medium">{e.nombre} {e.apellido}</span><span className="block text-xs text-muted-foreground">{e.cargo} · {e.cedula}</span></span>
+                    <Button size="icon" variant="ghost" aria-label={`Editar entrenador ${e.nombre} ${e.apellido}`} onClick={() => setEntrenador({ ...e, grupoId: g.id })}><Pencil className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+                <Button variant="outline" size="sm" onClick={() => setEntrenador({ grupoId: g.id, nombre: "", apellido: "", cedula: "", cargo: "" })}><Plus className="mr-2 h-4 w-4" />Agregar entrenador</Button>
+              </div>
             </div>
           );
         })}
         {!vistos.length && <p className="col-span-full py-10 text-center text-muted-foreground">No hay {tipo} para estos filtros.</p>}
       </div>
+
+      <Dialog open={!!entrenador} onOpenChange={(o) => !o && setEntrenador(null)}>
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
+          <DialogHeader><DialogTitle>{entrenador?.id ? "Editar entrenador" : "Agregar entrenador"}</DialogTitle><p className="text-sm text-muted-foreground">{grupos.find((g) => g.id === entrenador?.grupoId)?.nombre}</p></DialogHeader>
+          <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void guardarEntrenador(); }}>
+            {(["nombre", "apellido", "cedula", "cargo"] as const).map((campo) => <div key={campo} className="space-y-1.5"><Label htmlFor={`entrenador-${campo}`}>{campo === "cedula" ? "Cédula" : campo[0].toUpperCase() + campo.slice(1)}</Label><Input id={`entrenador-${campo}`} required value={entrenador?.[campo] ?? ""} onChange={(e) => entrenador && setEntrenador({ ...entrenador, [campo]: e.target.value })} /></div>)}
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setEntrenador(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEntrenador}>{guardandoEntrenador ? "Guardando…" : "Guardar"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">

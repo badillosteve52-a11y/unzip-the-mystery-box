@@ -15,3 +15,5 @@
 - [x] Períodos académicos 2027–2030 (sep–feb y mar–jul)
 - [x] Salas de ajedrez y tenis de mesa visibles y disponibles para reservas
 - [x] Entrenadores (nombre, apellido, cédula, cargo); guardado y lectura comprobados
+- [ ] Agregar entrenadores desde tarjetas de clubes y selecciones; quitar entrada independiente del menú
+- [ ] Verificar sala de ajedrez en escenarios
