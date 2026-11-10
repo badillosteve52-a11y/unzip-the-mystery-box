@@ -36,6 +36,13 @@
       "when": 1793375949730,
       "tag": "0004_handoff_coordinador_compartido",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1794347006991,
+      "tag": "0005_entrenadores",
+      "breakpoints": true
     }
   ]
 }
