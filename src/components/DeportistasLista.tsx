@@ -590,6 +590,11 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
   );
 }
 
+function normSiNo(v: unknown): boolean {
+  const s = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+  return s === "si" || s === "sí" || s === "yes" || s === "1" || s === "true" || s === "x";
+}
+
 function normGenero(v: unknown): string | null {
   const s = String(v ?? "").trim().toLowerCase();
   if (!s) return null;
