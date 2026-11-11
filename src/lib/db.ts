@@ -184,12 +184,14 @@ async function cargarTodo() {
       all(supabase.from("entrenadores").select("*").order("apellido")),
     ]);
 
-  const periodos = await asegurarPeriodoActual(periodosRaw);
+  const { data: rolActual } = await (supabase as any).rpc("mi_rol");
+  const puedeCompletarCatalogos = rolActual === "admin";
+  const periodos = puedeCompletarCatalogos ? await asegurarPeriodoActual(periodosRaw) : periodosRaw;
   const periodoActualId = periodos.find((p) => p.activo)?.id ?? null;
-  const deportes = await asegurarDeportes(deportesRaw);
-  const selecciones = await asegurarSelecciones(seleccionesRaw, deportes, periodoActualId);
-  const clubes = await asegurarClubes(clubesRaw, deportes, periodoActualId);
-  const escenarios = await asegurarEscenarios(escenariosRaw);
+  const deportes = puedeCompletarCatalogos ? await asegurarDeportes(deportesRaw) : deportesRaw;
+  const selecciones = puedeCompletarCatalogos ? await asegurarSelecciones(seleccionesRaw, deportes, periodoActualId) : seleccionesRaw;
+  const clubes = puedeCompletarCatalogos ? await asegurarClubes(clubesRaw, deportes, periodoActualId) : clubesRaw;
+  const escenarios = puedeCompletarCatalogos ? await asegurarEscenarios(escenariosRaw) : escenariosRaw;
 
   // Normalizar facultad Y carrera de todos los deportistas al cargar.
   // Esto corrige datos de ejemplo incorrectos ("Ingeniería en Sistemas",
@@ -198,7 +200,7 @@ async function cargarTodo() {
   // Los cambios se persisten en Supabase en segundo plano.
   const deportistasNormalizados = deportistas.map((d, i) => {
     // Estudiantes de ejemplo sin región: se les asigna una para mostrar el panel por zona
-    if (d.es_ejemplo && !d.region) {
+    if (puedeCompletarCatalogos && d.es_ejemplo && !d.region) {
       const region = ["Sierra", "Sierra", "Costa", "Sierra", "Amazonía", "Costa", "Sierra", "Insular"][i % 8] ?? "Sierra";
       d = { ...d, region };
       supabase.from("deportistas").update({ region }).eq("id", d.id).then(() => {});
@@ -207,7 +209,7 @@ async function cargarTodo() {
     const carreraNorm = normalizarCarrera(d.carrera, facNorm);
     const cambioFac = facNorm !== d.facultad;
     const cambioCarrera = carreraNorm !== d.carrera;
-    if (cambioFac || cambioCarrera) {
+    if (puedeCompletarCatalogos && (cambioFac || cambioCarrera)) {
       const patch: { facultad?: string | null; carrera?: string | null } = {};
       if (cambioFac) patch.facultad = facNorm;
       if (cambioCarrera) patch.carrera = carreraNorm;
