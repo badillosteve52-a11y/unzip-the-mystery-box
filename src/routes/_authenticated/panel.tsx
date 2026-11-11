@@ -2,7 +2,7 @@ import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Building2, Dumbbell, Flag, SearchX, Trash2, Users, UsersRound } from "lucide-react";
+import { Dumbbell, Flag, SearchX, Trash2, Users, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Cargando, PageHeader } from "@/components/PageHeader";
@@ -37,6 +37,7 @@ function Panel() {
   const { data } = useDatos();
   const refrescar = useRefrescar();
   const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "" });
+  const [tipoVista, setTipoVista] = useState<"selecciones" | "clubes">("selecciones");
 
   const opcionesFacultad = useMemo(() => {
     return LISTA_FACULTADES.map((fac) => ({ value: fac, label: fac }));
@@ -58,37 +59,48 @@ function Panel() {
   const r = useMemo(() => {
     if (!data) return null;
     const ds = filtrarDeportistas(data, f);
-    const ids = new Set(ds.map((d) => d.id));
     const okG = (g: { periodo_id: string | null; deporte_id: string | null }) =>
       (!f.periodo || g.periodo_id === f.periodo) && (!f.deporte || g.deporte_id === f.deporte);
     const sel = data.selecciones.filter(okG);
     const clu = data.clubes.filter(okG);
-    const nombreDep = new Map(data.deportes.map((d) => [d.id, d.nombre]));
-    const porDeporte = contar(data.dd.filter((x) => ids.has(x.deportista_id) && (!f.deporte || x.deporte_id === f.deporte)).map((x) => nombreDep.get(x.deporte_id)));
-    const comparativa = data.deportes
-      .filter((d) => !f.deporte || d.id === f.deporte)
-      .map((d) => {
-        const cuenta = (gs: typeof sel, ms: typeof data.selMiembros) => {
-          const g = new Set(gs.filter((x) => x.deporte_id === d.id).map((x) => x.id));
-          return ms.filter((m) => g.has(m.grupo_id) && ids.has(m.deportista_id)).length;
-        };
-        return { nombre: d.nombre, Clubes: cuenta(clu, data.clubMiembros), Selecciones: cuenta(sel, data.selMiembros) };
-      })
-      .filter((x) => x.Selecciones + x.Clubes > 0);
     return {
       ds,
       sel,
       clu,
-      porDeporte,
-      porFacultad: contar(ds.map((d) => d.facultad)),
-      porRegion: contar(ds.map((d) => d.region ?? "Sin dato")),
-      porGenero: contar(ds.map((d) => normGeneroPanel(d.genero)).filter((g): g is string => !!g)),
-      comparativa,
       hayEjemplo: [data.deportistas, data.deportes, data.periodos, data.escenarios, data.selecciones, data.clubes].some((t) => t.some((x) => x.es_ejemplo)),
     };
   }, [data, f]);
 
-  if (!data || !r) return <Cargando />;
+  const vista = useMemo(() => {
+    if (!data || !r) return null;
+    const grupos = tipoVista === "selecciones" ? r.sel : r.clu;
+    const relaciones = tipoVista === "selecciones" ? data.selMiembros : data.clubMiembros;
+    const idsGrupos = new Set(grupos.map((grupo) => grupo.id));
+    const miembros = relaciones.filter((miembro) => idsGrupos.has(miembro.grupo_id) && r.ds.some((deportista) => deportista.id === miembro.deportista_id));
+    const idsDeportistas = new Set(miembros.map((miembro) => miembro.deportista_id));
+    const deportistas = r.ds.filter((deportista) => idsDeportistas.has(deportista.id));
+    const nombreDeporte = new Map(data.deportes.map((deporte) => [deporte.id, deporte.nombre]));
+    const gruposConMiembros = new Set(miembros.map((miembro) => miembro.grupo_id));
+    const gruposFiltrados = grupos
+      .filter((grupo) => gruposConMiembros.has(grupo.id))
+      .map((grupo) => ({
+        nombre: grupo.nombre,
+        total: miembros.filter((miembro) => miembro.grupo_id === grupo.id).length,
+      }))
+      .sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre));
+
+    return {
+      deportistas,
+      grupos: gruposFiltrados,
+      deportes: new Set(grupos.filter((grupo) => gruposConMiembros.has(grupo.id)).map((grupo) => grupo.deporte_id).filter(Boolean)).size,
+      porDeporte: contar(data.dd.filter((relacion) => idsDeportistas.has(relacion.deportista_id) && (!f.deporte || relacion.deporte_id === f.deporte)).map((relacion) => nombreDeporte.get(relacion.deporte_id))),
+      porFacultad: contar(deportistas.map((deportista) => deportista.facultad)),
+      porRegion: contar(deportistas.map((deportista) => deportista.region ?? "Sin dato")),
+      porGenero: contar(deportistas.map((deportista) => normGeneroPanel(deportista.genero)).filter((genero): genero is string => !!genero)),
+    };
+  }, [data, r, tipoVista, f.deporte]);
+
+  if (!data || !r || !vista) return <Cargando />;
 
   async function borrarEjemplo() {
     if (!confirm("¿Borrar todos los datos de ejemplo? Tus datos reales no se tocan.")) return;
@@ -102,32 +114,25 @@ function Panel() {
   }
 
   const metricas = [
-    { label: "Deportistas", valor: r.ds.length, icon: Users },
-    { label: "Selecciones", valor: r.sel.length, icon: Flag },
-    { label: "Clubes", valor: r.clu.length, icon: UsersRound },
-    { label: "Deportes", valor: data.deportes.length, icon: Dumbbell },
-    { label: "Escenarios", valor: data.escenarios.length, icon: Building2 },
+    { label: "Deportistas", valor: vista.deportistas.length, icon: Users },
+    { label: tipoVista === "selecciones" ? "Selecciones" : "Clubes", valor: vista.grupos.length, icon: tipoVista === "selecciones" ? Flag : UsersRound },
+    { label: "Deportes con integrantes", valor: vista.deportes, icon: Dumbbell },
   ];
-
-  const cmpClubes = r.comparativa
-    .filter((x) => x.Clubes > 0)
-    .map((x) => ({ nombre: x.nombre, total: x.Clubes }))
-    .sort((a, b) => b.total - a.total);
-  const cmpSelecciones = r.comparativa
-    .filter((x) => x.Selecciones > 0)
-    .map((x) => ({ nombre: x.nombre, total: x.Selecciones }))
-    .sort((a, b) => b.total - a.total);
-
 
   return (
     <div>
-      <PageHeader title="Panel general" subtitle="Resumen del Centro de Deportes según los filtros elegidos.">
+      <PageHeader title="Panel general" subtitle={`Resumen de ${tipoVista === "selecciones" ? "selecciones" : "clubes"}; los datos de ambos se mantienen separados.`}>
         {r.hayEjemplo && (
           <Button variant="outline" onClick={borrarEjemplo}>
             <Trash2 className="mr-2 h-4 w-4" /> Borrar datos de ejemplo
           </Button>
         )}
       </PageHeader>
+
+      <div className="mb-5 flex flex-wrap gap-2" aria-label="Tipo de grupo del panel">
+        <Button type="button" variant={tipoVista === "selecciones" ? "default" : "secondary"} aria-pressed={tipoVista === "selecciones"} onClick={() => setTipoVista("selecciones")}><Flag className="mr-2 h-4 w-4" />Selecciones</Button>
+        <Button type="button" variant={tipoVista === "clubes" ? "default" : "secondary"} aria-pressed={tipoVista === "clubes"} onClick={() => setTipoVista("clubes")}><UsersRound className="mr-2 h-4 w-4" />Clubes</Button>
+      </div>
 
       <div className="mb-6 flex flex-wrap gap-3">
         <Filtro label="Período" value={f.periodo} onChange={(v) => setF({ ...f, periodo: v })} opciones={data.periodos.map((p) => ({ value: p.id, label: p.nombre }))} />
@@ -137,7 +142,7 @@ function Panel() {
         <Filtro label="Región" value={f.region} onChange={(v) => setF({ ...f, region: v })} opciones={REGIONES.map((x) => ({ value: x, label: x }))} />
       </div>
 
-      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-5">
+      <div className="mb-6 grid grid-cols-2 gap-3 md:grid-cols-3">
         {metricas.map((m) => (
           <div key={m.label} className="rounded-xl border bg-card p-4">
             <div className="flex items-center justify-between text-sm text-muted-foreground">
@@ -148,7 +153,7 @@ function Panel() {
         ))}
       </div>
 
-      {!r.ds.length && (
+      {!vista.deportistas.length && (
         <div className="mb-4 flex items-center gap-3 rounded-xl border border-dashed bg-muted/40 p-4 text-sm">
           <SearchX className="h-5 w-5 shrink-0 text-muted-foreground" />
           <span className="min-w-0 flex-1">No se encontraron deportistas con estos filtros.</span>
@@ -157,8 +162,8 @@ function Panel() {
       )}
 
       <div className="grid gap-4 lg:grid-cols-2">
-        <Grafico titulo="Deportistas por deporte" vacio={!r.porDeporte.length}>
-          <BarChart data={r.porDeporte}>
+        <Grafico titulo="Deportistas por deporte" vacio={!vista.porDeporte.length}>
+          <BarChart data={vista.porDeporte}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" />
             <XAxis dataKey="nombre" fontSize={11} interval={0} angle={-25} textAnchor="end" height={50} />
             <YAxis allowDecimals={false} fontSize={12} width={30} />
@@ -168,16 +173,16 @@ function Panel() {
         </Grafico>
         <div className="rounded-xl border bg-card p-4">
           <h3 className="mb-3 font-semibold">Deportistas por facultad</h3>
-          {r.porFacultad.length ? (
+          {vista.porFacultad.length ? (
             <ul className="space-y-3">
-              {r.porFacultad.map((x, i) => (
+              {vista.porFacultad.map((x, i) => (
                 <li key={x.nombre}>
                   <div className="mb-1 flex items-start justify-between gap-3 text-sm">
                     <span className="min-w-0">{x.nombre}</span>
                     <span className="shrink-0 font-semibold">{x.total}</span>
                   </div>
                   <div className="h-2 rounded-full bg-muted">
-                    <div className="h-2 rounded-full" style={{ width: `${(x.total / (r.porFacultad[0]?.total ?? 1)) * 100}%`, background: COLORES[i % COLORES.length] }} />
+                    <div className="h-2 rounded-full" style={{ width: `${(x.total / (vista.porFacultad[0]?.total ?? 1)) * 100}%`, background: COLORES[i % COLORES.length] }} />
                   </div>
                 </li>
               ))}
@@ -186,19 +191,19 @@ function Panel() {
             <SinDatos />
           )}
         </div>
-        <Grafico titulo="Deportistas por género" vacio={!r.porGenero.length}>
+        <Grafico titulo="Deportistas por género" vacio={!vista.porGenero.length}>
           <PieChart>
-            <Pie data={r.porGenero} dataKey="total" nameKey="nombre" innerRadius={50} outerRadius={90} label>
-              {r.porGenero.map((_, i) => <Cell key={i} fill={COLORES[i % COLORES.length]} />)}
+            <Pie data={vista.porGenero} dataKey="total" nameKey="nombre" innerRadius={50} outerRadius={90} label>
+              {vista.porGenero.map((_, i) => <Cell key={i} fill={COLORES[i % COLORES.length]} />)}
             </Pie>
             <Tooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />
           </PieChart>
         </Grafico>
-        <Grafico titulo="Deportistas por región" vacio={!r.porRegion.length}>
+        <Grafico titulo="Deportistas por región" vacio={!vista.porRegion.length}>
           <PieChart>
-            <Pie data={r.porRegion} dataKey="total" nameKey="nombre" outerRadius={90} label>
-              {r.porRegion.map((_, i) => <Cell key={i} fill={COLORES[i % COLORES.length]} />)}
+            <Pie data={vista.porRegion} dataKey="total" nameKey="nombre" outerRadius={90} label>
+              {vista.porRegion.map((_, i) => <Cell key={i} fill={COLORES[i % COLORES.length]} />)}
             </Pie>
             <Tooltip />
             <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -206,9 +211,8 @@ function Panel() {
         </Grafico>
       </div>
 
-      <div className="mt-4 grid gap-4 lg:grid-cols-2">
-        <GraficoIntegrantes titulo="Integrantes en clubes" datos={cmpClubes} color="var(--chart-3)" />
-        <GraficoIntegrantes titulo="Integrantes en selecciones" datos={cmpSelecciones} color="var(--chart-1)" />
+      <div className="mt-4">
+        <GraficoIntegrantes titulo={tipoVista === "selecciones" ? "Integrantes por selección" : "Integrantes por club"} datos={vista.grupos} color={tipoVista === "selecciones" ? "var(--chart-1)" : "var(--chart-3)"} />
       </div>
     </div>
   );
