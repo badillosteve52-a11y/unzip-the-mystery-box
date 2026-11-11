@@ -165,6 +165,7 @@ export type Database = {
           id: string
           nombres: string
           region: string | null
+          tiene_discapacidad: boolean
         }
         Insert: {
           apellidos: string
@@ -178,6 +179,7 @@ export type Database = {
           id?: string
           nombres: string
           region?: string | null
+          tiene_discapacidad?: boolean
         }
         Update: {
           apellidos?: string
@@ -191,6 +193,7 @@ export type Database = {
           id?: string
           nombres?: string
           region?: string | null
+          tiene_discapacidad?: boolean
         }
         Relationships: []
       }
