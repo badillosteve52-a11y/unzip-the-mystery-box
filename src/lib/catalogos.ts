@@ -3,7 +3,7 @@ export const FACULTADES_Y_CARRERAS: Record<string, string[]> = {
     "Administración de Empresas",
     "Contabilidad y Auditoría",
     "Finanzas",
-    "Mercadotecnia",
+    "Marketing",
     "Gestión del Transporte",
     "Gestión de Inteligencia de Negocios",
     "Comercio Exterior",
@@ -112,7 +112,8 @@ const ALIAS_CARRERAS: Record<string, string> = {
   "auditoría":                        "Contabilidad y Auditoría",
   "administracion":                   "Administración de Empresas",
   "administración":                   "Administración de Empresas",
-  "marketing":                        "Mercadotecnia",
+  "mercadotecnia":                    "Marketing",
+  "marketing":                        "Marketing",
   // Salud Pública
   "nutricion":                        "Nutrición y Dietética",
   "nutrición":                        "Nutrición y Dietética",
