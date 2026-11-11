@@ -30,6 +30,34 @@ const CATEGORIAS = [
   { id: "piscina", label: "Piscina" },
 ] as const;
 
+const FOTO_ESCENARIOS = {
+  piscina: "/escenarios/piscina.png",
+  estadio: "/escenarios/estadio-pista.png",
+  coliseo: "/escenarios/coliseo-basquet.png",
+  gimnasio: "/escenarios/gimnasio.png",
+  tenis: "/escenarios/tenis-campo.png",
+  futbol: "/escenarios/futbol-sintetico.png",
+  voleibol: "/escenarios/ecuavoley.png",
+  basquet: "/escenarios/basquet.png",
+} as const;
+
+function fotoEscenario(nombre: string, tipo: string | null) {
+  const texto = `${nombre} ${tipo ?? ""}`.toLocaleLowerCase();
+  if (texto.includes("piscina")) return { src: FOTO_ESCENARIOS.piscina, alt: "Piscina cubierta" };
+  if (texto.includes("estadio") || texto.includes("pista")) return { src: FOTO_ESCENARIOS.estadio, alt: "Estadio y pista deportiva" };
+  if (texto.includes("coliseo")) return { src: FOTO_ESCENARIOS.coliseo, alt: "Cancha cubierta del coliseo" };
+  if (texto.includes("gimnasio")) return { src: FOTO_ESCENARIOS.gimnasio, alt: "Gimnasio institucional" };
+  if (texto.includes("tenis de mesa") || texto.includes("ajedrez")) return null;
+  if (texto.includes("fútbol tenis") || texto.includes("futbol tenis")) return { src: FOTO_ESCENARIOS.futbol, alt: "Cancha de fútbol tenis" };
+  if (texto.includes("tenis")) return { src: FOTO_ESCENARIOS.tenis, alt: "Canchas de tenis de campo" };
+  if (texto.includes("fútbol") || texto.includes("futbol")) return { src: FOTO_ESCENARIOS.futbol, alt: "Cancha sintética de fútbol" };
+  if (texto.includes("ecuavóley") || texto.includes("ecuavoley") || texto.includes("vóley") || texto.includes("voley") || texto.includes("arena")) {
+    return { src: FOTO_ESCENARIOS.voleibol, alt: "Canchas exteriores de voleibol y ecuavóley" };
+  }
+  if (texto.includes("básquet") || texto.includes("basquet") || texto.includes("baloncesto")) return { src: FOTO_ESCENARIOS.basquet, alt: "Canchas de básquet" };
+  return null;
+}
+
 function Page() {
   const { data } = useDatos();
   const [categoria, setCategoria] = useState<string>("todos");
@@ -129,6 +157,10 @@ function Metric({ label, value, icon }: { label: string; value: number; icon: Re
 }
 
 function EscenarioCard({ nombre, tipo, ubicacion, capacidad, capacidadConjunta = false }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null; capacidadConjunta?: boolean }) {
-  return <article className="rounded-lg border bg-background p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p><dl className="mt-3 grid gap-2 text-xs text-muted-foreground"><div><dt className="inline font-medium">Ubicación: </dt><dd className="inline">{ubicacionEscenario(ubicacion)}</dd></div><div><dt className="inline font-medium">Uso deportivo: </dt><dd className="inline">{usoDeportivo(tipo)}</dd></div>{(capacidadConjunta || capacidad != null) && <div><dt className="inline font-medium">Público: </dt><dd className="inline">{capacidadConjunta ? "Referencia conjunta indicada arriba" : `${capacidad} aficionados en la ficha ESPOCH${tipo === "Gimnasio" ? " de gimnasia; no equivale a usuarios de equipos" : ""}`}</dd></div>}</dl></article>;
+  const foto = fotoEscenario(nombre, tipo);
+  return <article className="overflow-hidden rounded-lg border bg-background">
+    {foto && <img src={foto.src} alt={`${foto.alt} — ${nombre}`} loading="lazy" className="aspect-video w-full object-cover" />}
+    <div className="p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p><dl className="mt-3 grid gap-2 text-xs text-muted-foreground"><div><dt className="inline font-medium">Ubicación: </dt><dd className="inline">{ubicacionEscenario(ubicacion)}</dd></div><div><dt className="inline font-medium">Uso deportivo: </dt><dd className="inline">{usoDeportivo(tipo)}</dd></div>{(capacidadConjunta || capacidad != null) && <div><dt className="inline font-medium">Público: </dt><dd className="inline">{capacidadConjunta ? "Referencia conjunta indicada arriba" : `${capacidad} aficionados en la ficha ESPOCH${tipo === "Gimnasio" ? " de gimnasia; no equivale a usuarios de equipos" : ""}`}</dd></div>}</dl></div>
+  </article>;
 }
 
