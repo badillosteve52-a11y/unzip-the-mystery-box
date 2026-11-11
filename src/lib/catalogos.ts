@@ -3,7 +3,7 @@ export const FACULTADES_Y_CARRERAS: Record<string, string[]> = {
     "Administración de Empresas",
     "Contabilidad y Auditoría",
     "Finanzas",
-    "Mercadotecnia",
+    "Marketing",
     "Gestión del Transporte",
     "Gestión de Inteligencia de Negocios",
     "Comercio Exterior",
