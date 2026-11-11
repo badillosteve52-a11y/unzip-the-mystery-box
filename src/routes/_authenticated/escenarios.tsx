@@ -43,6 +43,8 @@ const FOTO_ESCENARIOS = {
 
 function fotoEscenario(nombre: string, tipo: string | null) {
   const texto = `${nombre} ${tipo ?? ""}`.toLocaleLowerCase();
+  // Vóley playa y ecuavóley de tierra no tienen foto propia: se muestran sin imagen.
+  if (texto.includes("playa") || texto.includes("tierra")) return null;
   if (texto.includes("piscina")) return { src: FOTO_ESCENARIOS.piscina, alt: "Piscina cubierta" };
   if (texto.includes("estadio") || texto.includes("pista")) return { src: FOTO_ESCENARIOS.estadio, alt: "Estadio y pista deportiva" };
   if (texto.includes("coliseo")) return { src: FOTO_ESCENARIOS.coliseo, alt: "Cancha cubierta del coliseo" };
