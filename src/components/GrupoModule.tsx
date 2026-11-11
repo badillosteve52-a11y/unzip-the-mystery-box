@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import { Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,8 +16,11 @@ import { errMsg, useRefrescar, type DatosCompletos, type Grupo } from "@/lib/db"
 import { calcularEdad } from "@/lib/edad";
 
 type Tipo = "selecciones" | "clubes";
+const authRoute = getRouteApi("/_authenticated");
 
 export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }) {
+  const { role } = authRoute.useRouteContext();
+  const esAdmin = role === "admin";
   const esSel = tipo === "selecciones";
   const singular = esSel ? "selección" : "club";
   const grupos = esSel ? data.selecciones : data.clubes;
@@ -128,9 +132,9 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
             )
           }
         />
-        <Button onClick={() => setEdit({ periodo_id: activo || null, ids: new Set() })}>
+        {esAdmin && <Button onClick={() => setEdit({ periodo_id: activo || null, ids: new Set() })}>
           <Plus className="mr-2 h-4 w-4" /> {esSel ? "Nueva selección" : "Nuevo club"}
-        </Button>
+        </Button>}
       </PageHeader>
 
       <div className="mb-5 flex flex-wrap gap-3">
@@ -155,7 +159,7 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
                   <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) })}>
                     <Pencil className="h-4 w-4" />
                   </Button>
-                  <Button size="icon" variant="ghost" aria-label="Eliminar" onClick={() => borrar(g)}><Trash2 className="h-4 w-4" /></Button>
+                  {esAdmin && <Button size="icon" variant="ghost" aria-label="Eliminar" onClick={() => borrar(g)}><Trash2 className="h-4 w-4" /></Button>}
                 </div>
               </div>
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
@@ -172,10 +176,10 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
                 {data.entrenadores.filter((e) => esSel ? e.seleccion_id === g.id : e.club_id === g.id).map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
                     <span className="min-w-0 break-words"><span className="font-medium">{e.nombre} {e.apellido}</span><span className="block text-xs text-muted-foreground">{e.cargo} · {e.cedula}</span></span>
-                    <Button size="icon" variant="ghost" aria-label={`Editar entrenador ${e.nombre} ${e.apellido}`} onClick={() => setEntrenador({ ...e, grupoId: g.id })}><Pencil className="h-4 w-4" /></Button>
+                    {esAdmin && <Button size="icon" variant="ghost" aria-label={`Editar entrenador ${e.nombre} ${e.apellido}`} onClick={() => setEntrenador({ ...e, grupoId: g.id })}><Pencil className="h-4 w-4" /></Button>}
                   </div>
                 ))}
-                <Button variant="outline" size="sm" onClick={() => setEntrenador({ grupoId: g.id, nombre: "", apellido: "", cedula: "", cargo: "" })}><Plus className="mr-2 h-4 w-4" />Agregar entrenador</Button>
+                {esAdmin && <Button variant="outline" size="sm" onClick={() => setEntrenador({ grupoId: g.id, nombre: "", apellido: "", cedula: "", cargo: "" })}><Plus className="mr-2 h-4 w-4" />Agregar entrenador</Button>}
               </div>
             </div>
           );

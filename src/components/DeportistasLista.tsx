@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { getRouteApi } from "@tanstack/react-router";
 import { Pencil, Plus, Search, Trash2, UserPlus, Flag, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -18,6 +19,7 @@ import { filtrarDeportistas } from "@/lib/filtros";
 import { FACULTADES_Y_CARRERAS, LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
 
 export const REGIONES = ["Sierra", "Costa", "Amazonía", "Insular"] as const;
+const authRoute = getRouteApi("/_authenticated");
 
 type Edit = Partial<Deportista> & { deportes: Set<string>; grupoId?: string };
 
@@ -28,6 +30,7 @@ type ParticipacionState = {
 };
 
 export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
+  const { role } = authRoute.useRouteContext();
   const esSel = tipo === "SELECCION";
   const { data } = useDatos();
   const refrescar = useRefrescar();
@@ -104,15 +107,15 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         if (error) throw error;
         id = n.id;
       }
-      await supabase.from("deportista_deportes").delete().eq("deportista_id", id!);
-      if (edit.deportes.size) {
-        const { error } = await supabase.from("deportista_deportes").insert([...edit.deportes].map((d) => ({ deportista_id: id!, deporte_id: d })));
-        if (error) throw error;
-      }
       if (!edit.id && edit.grupoId) {
         const { error } = esSel
           ? await supabase.from("seleccion_miembros").insert({ seleccion_id: edit.grupoId, deportista_id: id! })
           : await supabase.from("club_miembros").insert({ club_id: edit.grupoId, deportista_id: id! });
+        if (error) throw error;
+      }
+      await supabase.from("deportista_deportes").delete().eq("deportista_id", id!);
+      if (edit.deportes.size) {
+        const { error } = await supabase.from("deportista_deportes").insert([...edit.deportes].map((d) => ({ deportista_id: id!, deporte_id: d })));
         if (error) throw error;
       }
       toast.success("Deportista guardado");
@@ -228,7 +231,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         title={esSel ? "Deportistas de selecciones" : "Deportistas de clubes"}
         subtitle={esSel ? "Estudiantes que integran las selecciones deportivas." : "Estudiantes que integran los clubes deportivos."}
       >
-        <ImportExport
+        {role === "admin" && <ImportExport
           nombre={esSel ? "deportistas-selecciones" : "deportistas-clubes"}
           ayuda="Columnas: Cedula, Nombres, Apellidos, Fecha_Nacimiento, Carrera, Facultad, Genero, Region (Sierra, Costa, Amazonía, Insular), Deportes (separados por coma)"
           onImport={importar}
@@ -247,7 +250,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
               Deportes: depsDe(d.id).join(", "),
             }))
           }
-        />
+        />}
         <Button variant="outline" onClick={() => setParticipacion({ deportistaId: lista[0]?.id ?? "", tipo, grupoId: "" })}>
           <UserPlus className="mr-2 h-4 w-4" /> Registrar participación
         </Button>
@@ -334,15 +337,13 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
-                      <Button
+                      {role === "admin" && <Button
                         size="icon"
                         variant="ghost"
                         title="Eliminar"
                         aria-label="Eliminar"
                         onClick={() => borrar(d)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      ><Trash2 className="h-4 w-4" /></Button>}
                     </div>
                   </TableCell>
                 </TableRow>
