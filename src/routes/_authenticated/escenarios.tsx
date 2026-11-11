@@ -134,17 +134,24 @@ function Page() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {menus.agrupados.map(([grupo, miembros]) => (
-            <details key={grupo} className="group rounded-xl border bg-card shadow-sm open:sm:col-span-2 open:xl:col-span-3">
+          {menus.agrupados.map(([grupo, miembros]) => {
+            // Una sola foto por conjunto: va en la cabecera desplegable, no en cada cancha.
+            const fotoGrupo = fotoEscenario(miembros[0]?.nombre ?? "", miembros[0]?.tipo ?? null);
+            return (
+            <details key={grupo} className="group overflow-hidden rounded-xl border bg-card shadow-sm open:sm:col-span-2 open:xl:col-span-3">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-5 hover:bg-muted/40">
-                <span><span className="block text-lg font-semibold">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} escenarios · {ubicacionEscenario(miembros[0]?.ubicacion ?? null)}</span>{INFO_GRUPOS[grupo] && <span className="mt-1 block text-xs text-muted-foreground">{INFO_GRUPOS[grupo]}</span>}</span>
+                <span className="flex min-w-0 items-center gap-4">
+                  {fotoGrupo && <img src={fotoGrupo.src} alt={`${fotoGrupo.alt} — ${grupo}`} loading="lazy" className="hidden h-16 w-24 shrink-0 rounded-lg object-cover sm:block" />}
+                  <span><span className="block text-lg font-semibold">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} escenarios · {ubicacionEscenario(miembros[0]?.ubicacion ?? null)}</span>{INFO_GRUPOS[grupo] && <span className="mt-1 block text-xs text-muted-foreground">{INFO_GRUPOS[grupo]}</span>}</span>
+                </span>
                 <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
               </summary>
               <div className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
-                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadConjunta={Boolean(INFO_GRUPOS[grupo])} />)}
+                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadConjunta={Boolean(INFO_GRUPOS[grupo])} sinFoto />)}
               </div>
             </details>
-          ))}
+            );
+          })}
           {menus.individuales.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} />)}
           {!menus.agrupados.length && !menus.individuales.length && <p className="col-span-full rounded-xl border p-8 text-center text-muted-foreground">No hay escenarios en esta categoría.</p>}
         </div>
