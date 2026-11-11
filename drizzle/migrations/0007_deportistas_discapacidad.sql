@@ -1,0 +1,1 @@
+ALTER TABLE public.deportistas ADD COLUMN tiene_discapacidad boolean NOT NULL DEFAULT false;
