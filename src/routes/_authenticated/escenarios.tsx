@@ -165,8 +165,8 @@ function Metric({ label, value, icon }: { label: string; value: number; icon: Re
   return <div className="rounded-xl border bg-card p-4 shadow-sm"><div className="flex items-center justify-between text-xs font-medium text-muted-foreground">{label}{icon}</div><div className="mt-2 text-2xl font-bold">{value}</div></div>;
 }
 
-function EscenarioCard({ nombre, tipo, ubicacion, capacidad, capacidadConjunta = false }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null; capacidadConjunta?: boolean }) {
-  const foto = fotoEscenario(nombre, tipo);
+function EscenarioCard({ nombre, tipo, ubicacion, capacidad, capacidadConjunta = false, sinFoto = false }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null; capacidadConjunta?: boolean; sinFoto?: boolean }) {
+  const foto = sinFoto ? null : fotoEscenario(nombre, tipo);
   return <article className="overflow-hidden rounded-lg border bg-background">
     {foto && <img src={foto.src} alt={`${foto.alt} — ${nombre}`} loading="lazy" className="aspect-video w-full object-cover" />}
     <div className="p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p><dl className="mt-3 grid gap-2 text-xs text-muted-foreground"><div><dt className="inline font-medium">Ubicación: </dt><dd className="inline">{ubicacionEscenario(ubicacion)}</dd></div><div><dt className="inline font-medium">Uso deportivo: </dt><dd className="inline">{usoDeportivo(tipo)}</dd></div>{(capacidadConjunta || capacidad != null) && <div><dt className="inline font-medium">Público: </dt><dd className="inline">{capacidadConjunta ? "Referencia conjunta indicada arriba" : `${capacidad} aficionados en la ficha ESPOCH${tipo === "Gimnasio" ? " de gimnasia; no equivale a usuarios de equipos" : ""}`}</dd></div>}</dl></div>
