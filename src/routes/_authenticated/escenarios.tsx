@@ -43,6 +43,8 @@ const FOTO_ESCENARIOS = {
 
 function fotoEscenario(nombre: string, tipo: string | null) {
   const texto = `${nombre} ${tipo ?? ""}`.toLocaleLowerCase();
+  // Vóley playa y ecuavóley de tierra no tienen foto propia: se muestran sin imagen.
+  if (texto.includes("playa") || texto.includes("tierra")) return null;
   if (texto.includes("piscina")) return { src: FOTO_ESCENARIOS.piscina, alt: "Piscina cubierta" };
   if (texto.includes("estadio") || texto.includes("pista")) return { src: FOTO_ESCENARIOS.estadio, alt: "Estadio y pista deportiva" };
   if (texto.includes("coliseo")) return { src: FOTO_ESCENARIOS.coliseo, alt: "Cancha cubierta del coliseo" };
@@ -132,17 +134,24 @@ function Page() {
         </div>
 
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-          {menus.agrupados.map(([grupo, miembros]) => (
-            <details key={grupo} className="group rounded-xl border bg-card shadow-sm open:sm:col-span-2 open:xl:col-span-3">
+          {menus.agrupados.map(([grupo, miembros]) => {
+            // Una sola foto por conjunto: va en la cabecera desplegable, no en cada cancha.
+            const fotoGrupo = fotoEscenario(miembros[0]?.nombre ?? "", miembros[0]?.tipo ?? null);
+            return (
+            <details key={grupo} className="group overflow-hidden rounded-xl border bg-card shadow-sm open:sm:col-span-2 open:xl:col-span-3">
               <summary className="flex cursor-pointer list-none items-center justify-between gap-3 rounded-xl p-5 hover:bg-muted/40">
-                <span><span className="block text-lg font-semibold">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} escenarios · {ubicacionEscenario(miembros[0]?.ubicacion ?? null)}</span>{INFO_GRUPOS[grupo] && <span className="mt-1 block text-xs text-muted-foreground">{INFO_GRUPOS[grupo]}</span>}</span>
+                <span className="flex min-w-0 items-center gap-4">
+                  {fotoGrupo && <img src={fotoGrupo.src} alt={`${fotoGrupo.alt} — ${grupo}`} loading="lazy" className="hidden h-16 w-24 shrink-0 rounded-lg object-cover sm:block" />}
+                  <span><span className="block text-lg font-semibold">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} escenarios · {ubicacionEscenario(miembros[0]?.ubicacion ?? null)}</span>{INFO_GRUPOS[grupo] && <span className="mt-1 block text-xs text-muted-foreground">{INFO_GRUPOS[grupo]}</span>}</span>
+                </span>
                 <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
               </summary>
               <div className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
-                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadConjunta={Boolean(INFO_GRUPOS[grupo])} />)}
+                {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadConjunta={Boolean(INFO_GRUPOS[grupo])} sinFoto />)}
               </div>
             </details>
-          ))}
+            );
+          })}
           {menus.individuales.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} />)}
           {!menus.agrupados.length && !menus.individuales.length && <p className="col-span-full rounded-xl border p-8 text-center text-muted-foreground">No hay escenarios en esta categoría.</p>}
         </div>
@@ -156,8 +165,8 @@ function Metric({ label, value, icon }: { label: string; value: number; icon: Re
   return <div className="rounded-xl border bg-card p-4 shadow-sm"><div className="flex items-center justify-between text-xs font-medium text-muted-foreground">{label}{icon}</div><div className="mt-2 text-2xl font-bold">{value}</div></div>;
 }
 
-function EscenarioCard({ nombre, tipo, ubicacion, capacidad, capacidadConjunta = false }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null; capacidadConjunta?: boolean }) {
-  const foto = fotoEscenario(nombre, tipo);
+function EscenarioCard({ nombre, tipo, ubicacion, capacidad, capacidadConjunta = false, sinFoto = false }: { nombre: string; tipo: string | null; ubicacion: string | null; capacidad: number | null; capacidadConjunta?: boolean; sinFoto?: boolean }) {
+  const foto = sinFoto ? null : fotoEscenario(nombre, tipo);
   return <article className="overflow-hidden rounded-lg border bg-background">
     {foto && <img src={foto.src} alt={`${foto.alt} — ${nombre}`} loading="lazy" className="aspect-video w-full object-cover" />}
     <div className="p-4"><h3 className="font-medium">{nombre}</h3><p className="mt-1 text-sm text-muted-foreground">{tipo ?? "Escenario"}</p><dl className="mt-3 grid gap-2 text-xs text-muted-foreground"><div><dt className="inline font-medium">Ubicación: </dt><dd className="inline">{ubicacionEscenario(ubicacion)}</dd></div><div><dt className="inline font-medium">Uso deportivo: </dt><dd className="inline">{usoDeportivo(tipo)}</dd></div>{(capacidadConjunta || capacidad != null) && <div><dt className="inline font-medium">Público: </dt><dd className="inline">{capacidadConjunta ? "Referencia conjunta indicada arriba" : `${capacidad} aficionados en la ficha ESPOCH${tipo === "Gimnasio" ? " de gimnasia; no equivale a usuarios de equipos" : ""}`}</dd></div>}</dl></div>
