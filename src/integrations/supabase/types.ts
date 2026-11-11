@@ -313,6 +313,7 @@ export type Database = {
       }
       reservas_escenarios: {
         Row: {
+          cargo: string | null
           carrera: string
           correo: string | null
           created_at: string
@@ -323,11 +324,16 @@ export type Database = {
           hora_fin: string
           hora_inicio: string
           id: string
+          identificacion: string
+          institucion: string | null
           motivo: string
           solicitante: string
           telefono: string
+          tipo_externo: string | null
+          tipo_usuario: string
         }
         Insert: {
+          cargo?: string | null
           carrera?: string
           correo?: string | null
           created_at?: string
@@ -338,11 +344,16 @@ export type Database = {
           hora_fin: string
           hora_inicio: string
           id?: string
+          identificacion?: string
+          institucion?: string | null
           motivo: string
           solicitante: string
           telefono?: string
+          tipo_externo?: string | null
+          tipo_usuario?: string
         }
         Update: {
+          cargo?: string | null
           carrera?: string
           correo?: string | null
           created_at?: string
@@ -353,9 +364,13 @@ export type Database = {
           hora_fin?: string
           hora_inicio?: string
           id?: string
+          identificacion?: string
+          institucion?: string | null
           motivo?: string
           solicitante?: string
           telefono?: string
+          tipo_externo?: string | null
+          tipo_usuario?: string
         }
         Relationships: [
           {
