@@ -1,5 +1,6 @@
 import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Dumbbell, Flag, SearchX, Trash2, Users, UsersRound } from "lucide-react";
@@ -11,6 +12,7 @@ import { borrarDatosEjemplo, errMsg, useDatos, useRefrescar } from "@/lib/db";
 import { filtrarDeportistas } from "@/lib/filtros";
 import { REGIONES } from "@/components/DeportistasLista";
 import { LISTA_FACULTADES, getCarrerasPorFacultad } from "@/lib/catalogos";
+import { supabase } from "@/integrations/supabase/client";
 
 export const Route = createFileRoute("/_authenticated/panel")({
   head: () => routeMeta("Panel", "Estadísticas de deportistas, regiones, facultades, clubes y selecciones de la ESPOCH."),
@@ -34,10 +36,20 @@ function contar(xs: (string | null | undefined)[]) {
 }
 
 function Panel() {
+  const { role } = Route.useRouteContext();
   const { data } = useDatos();
   const refrescar = useRefrescar();
   const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "" });
   const [tipoVista, setTipoVista] = useState<"selecciones" | "clubes">("selecciones");
+  const { data: resumenReservas = [] } = useQuery({
+    queryKey: ["resumen-reservas-escenarios"],
+    enabled: role === "admin",
+    queryFn: async () => {
+      const { data: filas, error } = await (supabase as any).rpc("resumen_reservas_escenarios");
+      if (error) throw error;
+      return (filas ?? []).map((fila: { escenario: string; reservas: number }) => ({ nombre: fila.escenario, total: Number(fila.reservas) }));
+    },
+  });
 
   const opcionesFacultad = useMemo(() => {
     return LISTA_FACULTADES.map((fac) => ({ value: fac, label: fac }));
@@ -122,7 +134,7 @@ function Panel() {
   return (
     <div>
       <PageHeader title="Panel general" subtitle={`Resumen de ${tipoVista === "selecciones" ? "selecciones" : "clubes"}; los datos de ambos se mantienen separados.`}>
-        {r.hayEjemplo && (
+        {role === "admin" && r.hayEjemplo && (
           <Button variant="outline" onClick={borrarEjemplo}>
             <Trash2 className="mr-2 h-4 w-4" /> Borrar datos de ejemplo
           </Button>
@@ -214,6 +226,7 @@ function Panel() {
       <div className="mt-4">
         <GraficoIntegrantes titulo={tipoVista === "selecciones" ? "Integrantes por selección" : "Integrantes por club"} datos={vista.grupos} color={tipoVista === "selecciones" ? "var(--chart-1)" : "var(--chart-3)"} />
       </div>
+      {role === "admin" && <div className="mt-4"><GraficoIntegrantes titulo="Reservas por escenario" datos={resumenReservas} color="var(--chart-2)" /></div>}
     </div>
   );
 
