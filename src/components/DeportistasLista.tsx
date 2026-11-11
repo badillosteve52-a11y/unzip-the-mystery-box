@@ -93,6 +93,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         facultad: facNorm,
         genero: edit.genero || null,
         region: edit.region || null,
+        tiene_discapacidad: esSel ? false : !!edit.tiene_discapacidad,
       };
       let id = edit.id;
       if (id) {
@@ -241,6 +242,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
               Facultad: d.facultad ?? "",
               Genero: d.genero ?? "",
               Region: d.region ?? "",
+              ...(esSel ? {} : { Discapacidad: d.tiene_discapacidad ? "Sí" : "No" }),
               Deportes: depsDe(d.id).join(", "),
             }))
           }
@@ -299,6 +301,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <TableCell className="font-medium">
                     {d.apellidos} {d.nombres}
                     {d.es_ejemplo && <Badge variant="secondary" className="ml-2">ejemplo</Badge>}
+                    {!esSel && d.tiene_discapacidad && <Badge variant="outline" className="ml-2">discapacidad</Badge>}
                   </TableCell>
                   <TableCell>{calcularEdad(d.fecha_nacimiento) ?? "—"}</TableCell>
                   <TableCell>
@@ -408,6 +411,20 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <option value="Otro">Otro</option>
                 </select>
               </div>
+
+              {!esSel && (
+                <div className="space-y-1.5">
+                  <Label>¿Tiene discapacidad?</Label>
+                  <select
+                    className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
+                    value={edit.tiene_discapacidad ? "si" : "no"}
+                    onChange={(e) => setEdit({ ...edit, tiene_discapacidad: e.target.value === "si" })}
+                  >
+                    <option value="no">No</option>
+                    <option value="si">Sí</option>
+                  </select>
+                </div>
+              )}
 
 
               {/* Selector de Facultad */}
