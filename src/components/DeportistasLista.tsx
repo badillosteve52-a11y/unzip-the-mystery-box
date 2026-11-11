@@ -190,6 +190,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
           facultad: facNorm,
           genero: normGenero(r["genero"] ?? r["sexo"]),
           region: normRegion(r["region"] ?? r["zona"]),
+          ...(esSel ? {} : { tiene_discapacidad: normSiNo(r["discapacidad"] ?? r["tienediscapacidad"]) }),
           _deps: String(r.deportes ?? r.deporte ?? "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
         };
       })
