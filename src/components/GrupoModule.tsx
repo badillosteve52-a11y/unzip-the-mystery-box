@@ -187,7 +187,7 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader><DialogTitle>{entrenador?.id ? "Editar entrenador" : "Agregar entrenador"}</DialogTitle><p className="text-sm text-muted-foreground">{grupos.find((g) => g.id === entrenador?.grupoId)?.nombre}</p></DialogHeader>
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void guardarEntrenador(); }}>
-            {(["nombre", "apellido", "cedula", "cargo"] as const).map((campo) => <div key={campo} className="space-y-1.5"><Label htmlFor={`entrenador-${campo}`}>{campo === "cedula" ? "Cédula" : campo[0].toUpperCase() + campo.slice(1)}</Label><Input id={`entrenador-${campo}`} required value={entrenador?.[campo] ?? ""} onChange={(e) => entrenador && setEntrenador({ ...entrenador, [campo]: e.target.value })} /></div>)}
+            {(["nombre", "apellido", "cedula", "cargo"] as const).map((campo) => <div key={campo} className="space-y-1.5"><Label htmlFor={`entrenador-${campo}`}>{campo === "cedula" ? "Cédula" : campo.charAt(0).toUpperCase() + campo.slice(1)}</Label><Input id={`entrenador-${campo}`} required value={entrenador?.[campo] ?? ""} onChange={(e) => entrenador && setEntrenador({ ...entrenador, [campo]: e.target.value })} /></div>)}
             <DialogFooter><Button type="button" variant="outline" onClick={() => setEntrenador(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEntrenador}>{guardandoEntrenador ? "Guardando…" : "Guardar"}</Button></DialogFooter>
           </form>
         </DialogContent>
