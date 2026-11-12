@@ -26,7 +26,113 @@ export type Campo = {
 };
 
 type Row = { id: string; nombre?: unknown; es_ejemplo?: boolean; [k: string]: unknown };
-type EditRow = { id?: string; nombre?: unknown; [k: string]: unknown };
+type EditRow = { id?: string; nombre?: unknown; [k: string]: unknown };type GrupoPeriodo = { id: string; nombre: string; deporte_id: string | null };
+
+function claveGrupo(nombre: string, deporteId: string | null) {
+  return JSON.stringify([nombre.trim().toLocaleLowerCase(), deporteId]);
+}
+
+async function copiarClubesPeriodo(origenId: string, destinoId: string) {
+  const { data: origenes, error: errorOrigen } = await supabase
+    .from("clubes")
+    .select("id,nombre,deporte_id")
+    .eq("periodo_id", origenId);
+  if (errorOrigen) throw errorOrigen;
+  if (!origenes?.length) return;
+
+  const idsOrigen = origenes.map((grupo) => grupo.id);
+  const { data: miembros, error: errorMiembros } = await supabase
+    .from("club_miembros")
+    .select("club_id,deportista_id")
+    .in("club_id", idsOrigen);
+  if (errorMiembros) throw errorMiembros;
+
+  const { data: destinos, error: errorDestinos } = await supabase
+    .from("clubes")
+    .select("id,nombre,deporte_id")
+    .eq("periodo_id", destinoId);
+  if (errorDestinos) throw errorDestinos;
+
+  const porClave = new Map<string, GrupoPeriodo>();
+  (destinos ?? []).forEach((grupo) => porClave.set(claveGrupo(grupo.nombre, grupo.deporte_id), grupo));
+  const faltantes = origenes.filter((grupo) => !porClave.has(claveGrupo(grupo.nombre, grupo.deporte_id)));
+  if (faltantes.length) {
+    const { data: creados, error: errorCrear } = await supabase
+      .from("clubes")
+      .insert(faltantes.map((grupo) => ({ nombre: grupo.nombre, deporte_id: grupo.deporte_id, periodo_id: destinoId, es_ejemplo: false })))
+      .select("id,nombre,deporte_id");
+    if (errorCrear) throw errorCrear;
+    (creados ?? []).forEach((grupo) => porClave.set(claveGrupo(grupo.nombre, grupo.deporte_id), grupo));
+  }
+
+  const grupoDestinoPorOrigen = new Map(origenes.map((grupo) => [grupo.id, porClave.get(claveGrupo(grupo.nombre, grupo.deporte_id))?.id]));
+  const membresias = (miembros ?? []).flatMap((miembro) => {
+    const clubId = grupoDestinoPorOrigen.get(miembro.club_id);
+    return clubId ? [{ club_id: clubId, deportista_id: miembro.deportista_id }] : [];
+  });
+  if (membresias.length) {
+    const { error } = await supabase.from("club_miembros").upsert(membresias, { onConflict: "club_id,deportista_id", ignoreDuplicates: true });
+    if (error) throw error;
+  }
+}
+
+async function copiarSeleccionesPeriodo(origenId: string, destinoId: string) {
+  const { data: origenes, error: errorOrigen } = await supabase
+    .from("selecciones")
+    .select("id,nombre,deporte_id")
+    .eq("periodo_id", origenId);
+  if (errorOrigen) throw errorOrigen;
+  if (!origenes?.length) return;
+
+  const idsOrigen = origenes.map((grupo) => grupo.id);
+  const { data: miembros, error: errorMiembros } = await supabase
+    .from("seleccion_miembros")
+    .select("seleccion_id,deportista_id")
+    .in("seleccion_id", idsOrigen);
+  if (errorMiembros) throw errorMiembros;
+
+  const { data: destinos, error: errorDestinos } = await supabase
+    .from("selecciones")
+    .select("id,nombre,deporte_id")
+    .eq("periodo_id", destinoId);
+  if (errorDestinos) throw errorDestinos;
+
+  const porClave = new Map<string, GrupoPeriodo>();
+  (destinos ?? []).forEach((grupo) => porClave.set(claveGrupo(grupo.nombre, grupo.deporte_id), grupo));
+  const faltantes = origenes.filter((grupo) => !porClave.has(claveGrupo(grupo.nombre, grupo.deporte_id)));
+  if (faltantes.length) {
+    const { data: creados, error: errorCrear } = await supabase
+      .from("selecciones")
+      .insert(faltantes.map((grupo) => ({ nombre: grupo.nombre, deporte_id: grupo.deporte_id, periodo_id: destinoId, es_ejemplo: false })))
+      .select("id,nombre,deporte_id");
+    if (errorCrear) throw errorCrear;
+    (creados ?? []).forEach((grupo) => porClave.set(claveGrupo(grupo.nombre, grupo.deporte_id), grupo));
+  }
+
+  const grupoDestinoPorOrigen = new Map(origenes.map((grupo) => [grupo.id, porClave.get(claveGrupo(grupo.nombre, grupo.deporte_id))?.id]));
+  const membresias = (miembros ?? []).flatMap((miembro) => {
+    const seleccionId = grupoDestinoPorOrigen.get(miembro.seleccion_id);
+    return seleccionId ? [{ seleccion_id: seleccionId, deportista_id: miembro.deportista_id }] : [];
+  });
+  if (membresias.length) {
+    const { error } = await supabase.from("seleccion_miembros").upsert(membresias, { onConflict: "seleccion_id,deportista_id", ignoreDuplicates: true });
+    if (error) throw error;
+  }
+}
+
+function esPeriodoPosterior(destino: Record<string, unknown>, origen: Row) {
+  const fechaDestino = Date.parse(String(destino.fecha_inicio ?? ""));
+  const fechaOrigen = Date.parse(String(origen.fecha_inicio ?? ""));
+  if (Number.isFinite(fechaDestino) && Number.isFinite(fechaOrigen) && fechaDestino !== fechaOrigen) {
+    return fechaDestino > fechaOrigen;
+  }
+  const creadoDestino = Date.parse(String(destino.created_at ?? ""));
+  const creadoOrigen = Date.parse(String(origen.created_at ?? ""));
+  if (Number.isFinite(creadoDestino) && Number.isFinite(creadoOrigen)) return creadoDestino > creadoOrigen;
+  return !destino.id;
+}
+
+
 
 export function SimpleCrud({
   tabla,
@@ -79,23 +185,63 @@ export function SimpleCrud({
 
   async function guardar() {
     if (!edit) return;
+    let periodoGuardado: Row | null = null;
     try {
       const datos = limpiar(edit);
-      if (tabla === "periodos" && datos["activo"]) {
-        // Garantizar que solo un período permanezca activo
-        await supabase
-          .from("periodos")
-          .update({ activo: false } as never)
-          .neq("id", (edit.id as string) ?? "00000000-0000-0000-0000-000000000000");
+      let seCopioNomina = false;
+
+      if (tabla === "periodos") {
+        const activar = datos.activo === true;
+        const periodoActual = filas.find((fila) => fila.activo === true && fila.id !== edit.id);
+        const periodoEditado = filas.find((fila) => fila.id === edit.id);
+        const yaEstabaActivo = periodoEditado?.activo === true;
+        const guardarInactivo = activar && !yaEstabaActivo;
+        const datosGuardar = { ...datos, activo: guardarInactivo ? false : activar };
+        const resultado = edit.id
+          ? await supabase.from("periodos").update(datosGuardar as never).eq("id", edit.id).select("*").single()
+          : await supabase.from("periodos").insert(datosGuardar as never).select("*").single();
+        if (resultado.error) throw resultado.error;
+
+        const destino = resultado.data as unknown as Row;
+        periodoGuardado = destino;
+        if (guardarInactivo && periodoActual && esPeriodoPosterior(destino, periodoActual)) {
+          await copiarClubesPeriodo(periodoActual.id, destino.id);
+          await copiarSeleccionesPeriodo(periodoActual.id, destino.id);
+          seCopioNomina = true;
+        }
+
+        if (activar) {
+          const { error: errorDesactivar } = await supabase
+            .from("periodos")
+            .update({ activo: false } as never)
+            .neq("id", destino.id);
+          if (errorDesactivar) throw errorDesactivar;
+
+          if (!yaEstabaActivo) {
+            const { error: errorActivar } = await supabase
+              .from("periodos")
+              .update({ activo: true } as never)
+              .eq("id", destino.id);
+            if (errorActivar) {
+              if (periodoActual) await supabase.from("periodos").update({ activo: true } as never).eq("id", periodoActual.id);
+              throw errorActivar;
+            }
+          }
+        }
+      } else {
+        const { error } = edit.id
+          ? await supabase.from(tabla).update(datos as never).eq("id", edit.id)
+          : await supabase.from(tabla).insert(datos as never);
+        if (error) throw error;
       }
-      const { error } = edit.id
-        ? await supabase.from(tabla).update(datos as never).eq("id", edit.id as string)
-        : await supabase.from(tabla).insert(datos as never);
-      if (error) throw error;
-      toast.success("Guardado");
+
+      toast.success(seCopioNomina ? "Período activado; se copiaron clubes, selecciones e integrantes del período anterior" : "Guardado");
       setEdit(null);
       refrescar();
     } catch (e) {
+      if (periodoGuardado && !edit.id) {
+        setEdit({ ...edit, id: periodoGuardado.id, created_at: periodoGuardado.created_at });
+      }
       toast.error(errMsg(e));
     }
   }
