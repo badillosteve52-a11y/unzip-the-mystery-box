@@ -14,6 +14,52 @@ export type Database = {
   }
   public: {
     Tables: {
+      accesos_clubes: {
+        Row: {
+          club_id: string
+          user_id: string
+        }
+        Insert: {
+          club_id: string
+          user_id: string
+        }
+        Update: {
+          club_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accesos_clubes_club_id_fkey"
+            columns: ["club_id"]
+            isOneToOne: false
+            referencedRelation: "clubes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      accesos_selecciones: {
+        Row: {
+          seleccion_id: string
+          user_id: string
+        }
+        Insert: {
+          seleccion_id: string
+          user_id: string
+        }
+        Update: {
+          seleccion_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accesos_selecciones_seleccion_id_fkey"
+            columns: ["seleccion_id"]
+            isOneToOne: false
+            referencedRelation: "selecciones"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       club_miembros: {
         Row: {
           club_id: string
@@ -480,9 +526,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      asignar_rol_cuenta: {
+        Args: { _rol: string; _user_id: string }
+        Returns: boolean
+      }
       claim_admin: { Args: never; Returns: boolean }
       definir_coordinador: {
         Args: { _es_coordinador: boolean; _user_id: string }
+        Returns: boolean
+      }
+      guardar_grupos_cuenta: {
+        Args: { _clubes: string[]; _selecciones: string[]; _user_id: string }
         Returns: boolean
       }
       has_role: {
@@ -498,13 +552,40 @@ export type Database = {
           correo: string
           es_coordinador: boolean
           registrada_en: string
+          rol: string
           user_id: string
         }[]
       }
+      listar_grupos_acceso: {
+        Args: never
+        Returns: {
+          grupo_id: string
+          nombre: string
+          tipo: string
+        }[]
+      }
+      listar_grupos_cuenta: {
+        Args: { _user_id: string }
+        Returns: {
+          grupo_id: string
+          tipo: string
+        }[]
+      }
       mi_rol: { Args: never; Returns: string }
+      puede_gestionar_grupo: {
+        Args: { _grupo_id: string; _tipo: string; _user_id: string }
+        Returns: boolean
+      }
+      resumen_reservas_escenarios: {
+        Args: never
+        Returns: {
+          escenario: string
+          reservas: number
+        }[]
+      }
     }
     Enums: {
-      app_role: "admin"
+      app_role: "admin" | "gestor_grupos"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -632,7 +713,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["admin"],
+      app_role: ["admin", "gestor_grupos"],
     },
   },
 } as const
