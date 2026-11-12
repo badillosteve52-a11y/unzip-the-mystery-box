@@ -11,10 +11,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Cargando, PageHeader } from "@/components/PageHeader";
-import { Filtro, unicos } from "@/components/Filtro";
-import { ImportExport } from "@/components/ImportExport";
+import { Filtro, unicos } from "@/components/Filtro";import { ImportExport } from "@/components/ImportExport";
 import { errMsg, useDatos, useRefrescar, type Deportista } from "@/lib/db";
 import { calcularEdad, normalizarFecha } from "@/lib/edad";
+import { importarDeportistas } from "@/lib/importar-deportistas";
 import { filtrarDeportistas } from "@/lib/filtros";
 import { FACULTADES_Y_CARRERAS, LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
 
@@ -92,6 +92,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         nombres: (edit.nombres ?? "").trim(),
         apellidos: (edit.apellidos ?? "").trim(),
         fecha_nacimiento: edit.fecha_nacimiento || null,
+                pao: edit.pao || null,
         carrera: carNorm,
         facultad: facNorm,
         genero: edit.genero || null,
@@ -233,8 +234,8 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
       >
         {role === "admin" && <ImportExport
           nombre={esSel ? "deportistas-selecciones" : "deportistas-clubes"}
-          ayuda="Columnas: Cedula, Nombres, Apellidos, Fecha_Nacimiento, Carrera, Facultad, Genero, Region (Sierra, Costa, Amazonía, Insular), Deportes (separados por coma)"
-          onImport={importar}
+          ayuda="Excel de clubes: Nombres y apellidos (nombres primero), fecha nacimiento, cédula, género, región, facultad y una marca en Nivelación/PAO 1–9. La edad se calcula desde la fecha."
+          onImport={(rows) => data ? importarDeportistas(rows, { esSeleccion: esSel, deportes: data.deportes }).then((cantidad) => { refrescar(); return cantidad; }) : Promise.resolve(0)}
           filas={() =>
             lista.map((d) => ({
               Cedula: d.cedula,
@@ -242,6 +243,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
               Apellidos: d.apellidos,
               Fecha_Nacimiento: d.fecha_nacimiento ?? "",
               Edad: calcularEdad(d.fecha_nacimiento) ?? "",
+                            PAO: d.pao ?? "",
               Carrera: d.carrera ?? "",
               Facultad: d.facultad ?? "",
               Genero: d.genero ?? "",
