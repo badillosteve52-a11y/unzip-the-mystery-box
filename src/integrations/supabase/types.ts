@@ -501,6 +501,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      mi_rol: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin"
