@@ -1,9 +1,9 @@
 import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Dumbbell, Flag, SearchX, Trash2, Users, UsersRound } from "lucide-react";
+import { Download, Dumbbell, Flag, SearchX, Trash2, Users, UsersRound } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Cargando, PageHeader } from "@/components/PageHeader";
@@ -45,9 +45,9 @@ function Panel() {
     queryKey: ["resumen-reservas-escenarios"],
     enabled: role === "admin",
     queryFn: async () => {
-      const { data: filas, error } = await (supabase as any).rpc("resumen_reservas_escenarios");
+      const { data: filas, error } = await supabase.from("reservas_escenarios").select("escenario_nombre, estado");
       if (error) throw error;
-      return (filas ?? []).map((fila: { escenario: string; reservas: number }) => ({ nombre: fila.escenario, total: Number(fila.reservas) }));
+      return contar((filas ?? []).filter((x) => x.estado !== "cancelada" && x.estado !== "rechazada").map((x) => x.escenario_nombre));
     },
   });
 
@@ -183,8 +183,7 @@ function Panel() {
             <Bar dataKey="total" name="Deportistas" fill="var(--chart-1)" radius={[4, 4, 0, 0]} />
           </BarChart>
         </Grafico>
-        <div className="rounded-xl border bg-card p-4">
-          <h3 className="mb-3 font-semibold">Deportistas por facultad</h3>
+        <Tarjeta titulo="Deportistas por facultad">
           {vista.porFacultad.length ? (
             <ul className="space-y-3">
               {vista.porFacultad.map((x, i) => (
@@ -202,7 +201,7 @@ function Panel() {
           ) : (
             <SinDatos />
           )}
-        </div>
+        </Tarjeta>
         <Grafico titulo="Deportistas por género" vacio={!vista.porGenero.length}>
           <PieChart>
             <Pie data={vista.porGenero} dataKey="total" nameKey="nombre" innerRadius={50} outerRadius={90} label>
@@ -226,7 +225,7 @@ function Panel() {
       <div className="mt-4">
         <GraficoIntegrantes titulo={tipoVista === "selecciones" ? "Integrantes por selección" : "Integrantes por club"} datos={vista.grupos} color={tipoVista === "selecciones" ? "var(--chart-1)" : "var(--chart-3)"} />
       </div>
-      {role === "admin" && <div className="mt-4"><GraficoIntegrantes titulo="Reservas por escenario" datos={resumenReservas} color="var(--chart-2)" /></div>}
+      {role === "admin" && <div className="mt-4"><GraficoIntegrantes titulo="Reservas por escenario" datos={resumenReservas as { nombre: string; total: number }[]} color="var(--chart-2)" /></div>}
     </div>
   );
 
@@ -241,14 +240,47 @@ function SinDatos() {
   );
 }
 
+function Tarjeta({ titulo, children }: { titulo: string; children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  async function descargar() {
+    if (!ref.current) return;
+    try {
+      const { default: html2canvas } = await import("html2canvas-pro");
+      const canvas = await html2canvas(ref.current, {
+        scale: 2,
+        backgroundColor: getComputedStyle(document.body).backgroundColor,
+        ignoreElements: (el) => el.hasAttribute("data-no-captura"),
+      });
+      const a = document.createElement("a");
+      a.href = canvas.toDataURL("image/png");
+      a.download = `${titulo.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-")}.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    } catch (e) {
+      toast.error(errMsg(e));
+    }
+  }
+  return (
+    <div ref={ref} className="rounded-xl border bg-card p-4">
+      <div className="mb-3 flex items-center justify-between gap-2">
+        <h3 className="font-semibold">{titulo}</h3>
+        <Button data-no-captura type="button" size="sm" variant="ghost" onClick={descargar} aria-label={`Descargar imagen: ${titulo}`}>
+          <Download className="mr-1 h-4 w-4" /> Imagen
+        </Button>
+      </div>
+      {children}
+    </div>
+  );
+}
+
 function Grafico({ titulo, children, vacio, alto = 288 }: { titulo: string; children: React.ReactElement; vacio?: boolean; alto?: number }) {
   return (
-    <div className="rounded-xl border bg-card p-4">
-      <h3 className="mb-3 font-semibold">{titulo}</h3>
+    <Tarjeta titulo={titulo}>
       <div style={{ height: alto }}>
         {vacio ? <SinDatos /> : <ResponsiveContainer width="100%" height="100%">{children}</ResponsiveContainer>}
       </div>
-    </div>
+    </Tarjeta>
   );
 }
 
