@@ -13,7 +13,7 @@ import { PageHeader } from "./PageHeader";
 import { Filtro } from "./Filtro";
 import { ImportExport } from "./ImportExport";
 import { errMsg, useRefrescar, type DatosCompletos, type Grupo } from "@/lib/db";
-import { calcularEdad } from "@/lib/edad";
+import { calcularEdad } from "@/lib/edad"; import { importarDeportistas } from "@/lib/importar-deportistas";
 
 type Tipo = "selecciones" | "clubes";
 const authRoute = getRouteApi("/_authenticated");
@@ -82,7 +82,13 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
     toast.success("Entrenador guardado");
   }
 
-  const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?.nombre ?? "—";
+    async function importarEnGrupo(grupoId: string, rows: Record<string, unknown>[]) {
+    const cantidad = await importarDeportistas(rows, { esSeleccion: esSel, grupoId, deportes: data.deportes });
+    await refrescar();
+    return cantidad;
+  }
+
+const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?.nombre ?? "—";
   const nombrePer = (id: string | null) => data.periodos.find((d) => d.id === id)?.nombre ?? "—";
   const porId = useMemo(() => new Map(data.deportistas.map((d) => [d.id, d])), [data.deportistas]);
 
@@ -159,6 +165,7 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
                   Carrera: d?.carrera,
                   Facultad: d?.facultad,
                   Edad: calcularEdad(d?.fecha_nacimiento),
+                                    PAO: d?.pao,
                 };
               }),
             )
@@ -197,7 +204,8 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" /> {ms.length} integrantes
               </div>
-              <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
+              {!esSel && esAdmin && <div className="mt-3"><ImportExport nombre={`${g.nombre}-integrantes`} filas={() => []} onImport={(rows) => importarEnGrupo(g.id, rows)} ocultarExportar textoImportar="Importar Excel a este club" ayuda="Columnas aceptadas: Nombres y apellidos (nombres primero), fecha nacimiento, edad, cédula, género, región, facultad y Nivelación/PAO 1–9. Marca un solo PAO actual; se guarda en la ficha. La edad se calcula desde la fecha." /></div>}
+<ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
                 {ms.map((m) => {
                   const d = porId.get(m.deportista_id);
                   return <li key={m.deportista_id} className="flex items-center justify-between gap-2">
