@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
-import { Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Download, FileUp, Pencil, Plus, Trash2, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -34,6 +34,38 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const [q, setQ] = useState("");
   const [entrenador, setEntrenador] = useState<{ id?: string; grupoId: string; nombre: string; apellido: string; cedula: string; cargo: string } | null>(null);
   const [guardandoEntrenador, setGuardandoEntrenador] = useState(false);
+  const [subiendoCertificado, setSubiendoCertificado] = useState<string | null>(null);
+  const [descargandoGrupo, setDescargandoGrupo] = useState<string | null>(null);
+
+  async function subirCertificado(seleccionId: string, deportistaId: string, file: File | undefined) {
+    if (!file) return;
+    if (file.type !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) { toast.error("El certificado debe estar en formato PDF"); return; }
+    if (file.size > 10 * 1024 * 1024) { toast.error("El PDF no puede superar 10 MB"); return; }
+    setSubiendoCertificado(deportistaId);
+    const { error } = await supabase.storage.from("certificados-matricula").upload(`${seleccionId}/${deportistaId}.pdf`, file, { upsert: true, contentType: "application/pdf" });
+    setSubiendoCertificado(null);
+    if (error) toast.error(errMsg(error)); else toast.success("Certificado de matrícula guardado");
+  }
+
+  async function descargarCertificados(seleccionId: string, seleccionNombre: string) {
+    setDescargandoGrupo(seleccionId);
+    const { data: files, error } = await supabase.storage.from("certificados-matricula").list(seleccionId);
+    if (error) { setDescargandoGrupo(null); toast.error(errMsg(error)); return; }
+    const pdfs = (files ?? []).filter((file) => file.name.toLowerCase().endsWith(".pdf"));
+    if (!pdfs.length) { setDescargandoGrupo(null); toast.info("Esta selección todavía no tiene certificados cargados"); return; }
+    let fallidos = 0;
+    for (const file of pdfs) {
+      const { data: blob, error: downloadError } = await supabase.storage.from("certificados-matricula").download(`${seleccionId}/${file.name}`);
+      if (downloadError || !blob) { fallidos += 1; continue; }
+      const deportista = porId.get(file.name.replace(/\.pdf$/i, ""));
+      const nombre = `${deportista?.apellidos ?? "deportista"}_${deportista?.nombres ?? ""}`.trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
+      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${seleccionNombre}_${nombre}.pdf`; link.click();
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000); await new Promise((resolve) => setTimeout(resolve, 250));
+    }
+    setDescargandoGrupo(null);
+    toast.success(fallidos ? `Descargados ${pdfs.length - fallidos}; fallaron ${fallidos}` : `Descargados ${pdfs.length} certificados`);
+  }
+
 
   async function guardarEntrenador() {
     if (!entrenador || guardandoEntrenador) return;
@@ -165,13 +197,21 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" /> {ms.length} integrantes
               </div>
-              <ul className="mt-2 space-y-0.5 text-sm">
-                {ms.slice(0, 5).map((m) => {
+              <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
+                {ms.map((m) => {
                   const d = porId.get(m.deportista_id);
-                  return <li key={m.deportista_id} className="truncate">{d?.apellidos} {d?.nombres}</li>;
+                  return <li key={m.deportista_id} className="flex items-center justify-between gap-2">
+                    <span className="min-w-0 truncate">{d?.apellidos} {d?.nombres}</span>
+                    {esSel && <label className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted" title="Subir certificado de matrícula en PDF">
+                      <FileUp className="h-3.5 w-3.5" /><span>{subiendoCertificado === m.deportista_id ? "Subiendo…" : "PDF"}</span>
+                      <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(g.id, m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
+                    </label>}
+                  </li>;
                 })}
-                {ms.length > 5 && <li className="text-muted-foreground">y {ms.length - 5} más…</li>}
               </ul>
+              {esSel && esAdmin && <Button className="mt-3 w-full" size="sm" variant="outline" onClick={() => void descargarCertificados(g.id, g.nombre)} disabled={descargandoGrupo === g.id}>
+                <Download className="mr-2 h-4 w-4" />{descargandoGrupo === g.id ? "Descargando…" : "Descargar certificados PDF"}
+              </Button>}
               <div className="mt-4 space-y-2 border-t pt-3">
                 {data.entrenadores.filter((e) => esSel ? e.seleccion_id === g.id : e.club_id === g.id).map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
