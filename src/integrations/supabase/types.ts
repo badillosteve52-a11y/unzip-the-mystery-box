@@ -210,6 +210,7 @@ export type Database = {
           genero: string | null
           id: string
           nombres: string
+          pao: string | null
           region: string | null
           tiene_discapacidad: boolean
         }
@@ -224,6 +225,7 @@ export type Database = {
           genero?: string | null
           id?: string
           nombres: string
+          pao?: string | null
           region?: string | null
           tiene_discapacidad?: boolean
         }
@@ -238,6 +240,7 @@ export type Database = {
           genero?: string | null
           id?: string
           nombres?: string
+          pao?: string | null
           region?: string | null
           tiene_discapacidad?: boolean
         }
