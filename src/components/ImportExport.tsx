@@ -11,11 +11,15 @@ export function ImportExport({
   filas,
   onImport,
   ayuda,
+  ocultarExportar = false,
+  textoImportar = "Importar",
 }: {
   nombre: string;
   filas: () => Record<string, unknown>[];
   onImport?: (rows: Record<string, unknown>[]) => Promise<number>;
   ayuda?: string;
+  ocultarExportar?: boolean;
+  textoImportar?: string;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   return (
@@ -41,11 +45,11 @@ export function ImportExport({
             }}
           />
           <Button variant="outline" onClick={() => ref.current?.click()} title={ayuda}>
-            <Upload className="mr-2 h-4 w-4" /> Importar
+            <Upload className="mr-2 h-4 w-4" /> {textoImportar}
           </Button>
         </>
       )}
-      <DropdownMenu>
+      {!ocultarExportar && <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button variant="outline">
             <Download className="mr-2 h-4 w-4" /> Exportar
@@ -56,7 +60,7 @@ export function ImportExport({
           <DropdownMenuItem onClick={() => exportar(filas(), nombre, "csv")}>CSV</DropdownMenuItem>
           <DropdownMenuItem onClick={() => exportarPDF(filas(), nombre)}>PDF</DropdownMenuItem>
         </DropdownMenuContent>
-      </DropdownMenu>
+      </DropdownMenu>}
     </>
   );
 }
