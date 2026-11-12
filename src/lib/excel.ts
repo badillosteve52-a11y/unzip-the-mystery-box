@@ -44,7 +44,7 @@ export async function leerArchivo(file: File): Promise<Record<string, unknown>[]
   return rows.map((r) => {
     const o: Record<string, unknown> = {};
     for (const [k, v] of Object.entries(r)) {
-      o[k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z]/g, "")] = v;
+      o[k.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9]/g, "")] = v;
     }
     return o;
   });
