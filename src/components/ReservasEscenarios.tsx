@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, Clock3, Download, Dumbbell, FilterX, MapPin, Plus, UserRound, UsersRound, XCircle, Trash2 } from "lucide-react";
+import { CalendarDays, CheckCircle2, ChevronDown, Clock3, Download, Dumbbell, FilterX, Info, MapPin, Plus, UserRound, UsersRound, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CATALOGO_ESCENARIOS } from "@/lib/catalogos";
@@ -24,7 +24,7 @@ type Reserva = {
   estado: string;
 };
 
-type Escenario = { id: string; nombre: string }; const TIPOS_USUARIO = ["Estudiante", "Docente", "Administrativo", "Trabajador", "Persona externa"] as const; const TIPOS_EXTERNOS = ["Persona natural", "Empresa", "Institución", "Organización"] as const; const ESTADOS_RESERVA = [{value:"pendiente",label:"Pendiente"},{value:"aprobada",label:"Aprobada"},{value:"rechazada",label:"Rechazada"},{value:"confirmada",label:"Confirmada"},{value:"atendida",label:"Atendida"},{value:"no_asistio",label:"No asistió"},{value:"cancelada",label:"Cancelada"}];
+type Escenario = { id: string; nombre: string }; const TIPOS_USUARIO = ["Estudiante", "Docente", "Administrativo", "Trabajador", "Persona externa"] as const; const TIPOS_EXTERNOS = ["Persona natural", "Empresa", "Institución", "Organización"] as const; const ESTADOS_RESERVA = [{value:"pendiente",label:"Pendiente",descripcion:"Solicitud recibida, esperando revisión."},{value:"aprobada",label:"Aprobada",descripcion:"Reserva autorizada."},{value:"rechazada",label:"Rechazada",descripcion:"Solicitud no autorizada."},{value:"confirmada",label:"Confirmada",descripcion:"El usuario confirma que utilizará el escenario."},{value:"atendida",label:"Atendida",descripcion:"Se brindó el servicio y se cumplió la reserva."},{value:"no_asistio",label:"No asistió",descripcion:"El usuario no se presentó en el horario reservado."},{value:"cancelada",label:"Cancelada",descripcion:"Reserva anulada por el solicitante o el administrador."}];
 const reservasDb = supabase as unknown as { from: (table: string) => any };
 
 function fechaLocal() {
