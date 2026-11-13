@@ -146,10 +146,12 @@ function Page() {
               ?? fotoEscenario(miembros[0]?.nombre ?? "", miembros[0]?.tipo ?? null);
             return (
             <details key={grupo} className="group overflow-hidden rounded-xl border bg-card shadow-sm open:sm:col-span-2 open:xl:col-span-3">
-              {fotoGrupo && <img src={fotoGrupo.src} alt={`${fotoGrupo.alt} — ${grupo}`} loading="lazy" className="aspect-video w-full object-cover" />}
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 hover:bg-muted/40">
-                <span className="min-w-0"><span className="block font-medium">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} escenarios · {ubicacionEscenario(miembros[0]?.ubicacion ?? null)}</span>{INFO_GRUPOS[grupo] && <span className="mt-1 block text-xs text-muted-foreground">{INFO_GRUPOS[grupo]}</span>}</span>
-                <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
+              <summary className="cursor-pointer list-none hover:bg-muted/40">
+                {fotoGrupo && <img src={fotoGrupo.src} alt={`${fotoGrupo.alt} — ${grupo}`} loading="lazy" className="aspect-video w-full object-cover" />}
+                <div className="flex items-center justify-between gap-3 p-4">
+                  <span className="min-w-0"><span className="block font-medium">{grupo}</span><span className="text-sm text-muted-foreground">{miembros.length} escenarios · {ubicacionEscenario(miembros[0]?.ubicacion ?? null)}</span>{INFO_GRUPOS[grupo] && <span className="mt-1 block text-xs text-muted-foreground">{INFO_GRUPOS[grupo]}</span>}</span>
+                  <ChevronDown className="h-5 w-5 shrink-0 transition-transform group-open:rotate-180" />
+                </div>
               </summary>
               <div className="grid gap-3 border-t p-4 sm:grid-cols-2 lg:grid-cols-3">
                 {miembros.map((e) => <EscenarioCard key={e.id} nombre={e.nombre} tipo={e.tipo} ubicacion={e.ubicacion} capacidad={e.capacidad} capacidadConjunta={Boolean(INFO_GRUPOS[grupo])} sinFoto />)}
