@@ -16,7 +16,6 @@ import { Route as AuthenticatedAccesosRouteImport } from './routes/_authenticate
 import { Route as AuthenticatedClubesRouteImport } from './routes/_authenticated/clubes'
 import { Route as AuthenticatedDeportesRouteImport } from './routes/_authenticated/deportes'
 import { Route as AuthenticatedDeportistasClubesRouteImport } from './routes/_authenticated/deportistas-clubes'
-import { Route as AuthenticatedDeportistasRouteImport } from './routes/_authenticated/deportistas'
 import { Route as AuthenticatedDeportistasSeleccionesRouteImport } from './routes/_authenticated/deportistas-selecciones'
 import { Route as AuthenticatedEntrenadoresRouteImport } from './routes/_authenticated/entrenadores'
 import { Route as AuthenticatedEscenariosRouteImport } from './routes/_authenticated/escenarios'
@@ -59,11 +58,6 @@ const AuthenticatedDeportistasClubesRoute =
     path: '/deportistas-clubes',
     getParentRoute: () => AuthenticatedRouteRoute,
   } as any)
-const AuthenticatedDeportistasRoute = AuthenticatedDeportistasRouteImport.update({
-  id: '/deportistas',
-  path: '/deportistas',
-  getParentRoute: () => AuthenticatedRouteRoute,
-} as any)
 const AuthenticatedDeportistasSeleccionesRoute =
   AuthenticatedDeportistasSeleccionesRouteImport.update({
     id: '/deportistas-selecciones',
@@ -105,7 +99,6 @@ export interface FileRoutesByFullPath {
   '/clubes': typeof AuthenticatedClubesRoute
   '/deportes': typeof AuthenticatedDeportesRoute
   '/deportistas-clubes': typeof AuthenticatedDeportistasClubesRoute
-  '/deportistas': typeof AuthenticatedDeportistasRoute
   '/deportistas-selecciones': typeof AuthenticatedDeportistasSeleccionesRoute
   '/entrenadores': typeof AuthenticatedEntrenadoresRoute
   '/escenarios': typeof AuthenticatedEscenariosRoute
@@ -120,7 +113,6 @@ export interface FileRoutesByTo {
   '/clubes': typeof AuthenticatedClubesRoute
   '/deportes': typeof AuthenticatedDeportesRoute
   '/deportistas-clubes': typeof AuthenticatedDeportistasClubesRoute
-  '/deportistas': typeof AuthenticatedDeportistasRoute
   '/deportistas-selecciones': typeof AuthenticatedDeportistasSeleccionesRoute
   '/entrenadores': typeof AuthenticatedEntrenadoresRoute
   '/escenarios': typeof AuthenticatedEscenariosRoute
@@ -137,7 +129,6 @@ export interface FileRoutesById {
   '/_authenticated/clubes': typeof AuthenticatedClubesRoute
   '/_authenticated/deportes': typeof AuthenticatedDeportesRoute
   '/_authenticated/deportistas-clubes': typeof AuthenticatedDeportistasClubesRoute
-  '/_authenticated/deportistas': typeof AuthenticatedDeportistasRoute
   '/_authenticated/deportistas-selecciones': typeof AuthenticatedDeportistasSeleccionesRoute
   '/_authenticated/entrenadores': typeof AuthenticatedEntrenadoresRoute
   '/_authenticated/escenarios': typeof AuthenticatedEscenariosRoute
@@ -154,7 +145,6 @@ export interface FileRouteTypes {
     | '/clubes'
     | '/deportes'
     | '/deportistas-clubes'
-    | '/deportistas'
     | '/deportistas-selecciones'
     | '/entrenadores'
     | '/escenarios'
@@ -169,7 +159,6 @@ export interface FileRouteTypes {
     | '/clubes'
     | '/deportes'
     | '/deportistas-clubes'
-    | '/deportistas'
     | '/deportistas-selecciones'
     | '/entrenadores'
     | '/escenarios'
@@ -185,7 +174,6 @@ export interface FileRouteTypes {
     | '/_authenticated/clubes'
     | '/_authenticated/deportes'
     | '/_authenticated/deportistas-clubes'
-    | '/_authenticated/deportistas'
     | '/_authenticated/deportistas-selecciones'
     | '/_authenticated/entrenadores'
     | '/_authenticated/escenarios'
@@ -251,13 +239,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedDeportistasClubesRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
-    '/_authenticated/deportistas': {
-      id: '/_authenticated/deportistas'
-      path: '/deportistas'
-      fullPath: '/deportistas'
-      preLoaderRoute: typeof AuthenticatedDeportistasRouteImport
-      parentRoute: typeof AuthenticatedRouteRoute
-    }
     '/_authenticated/deportistas-selecciones': {
       id: '/_authenticated/deportistas-selecciones'
       path: '/deportistas-selecciones'
@@ -308,7 +289,6 @@ interface AuthenticatedRouteRouteChildren {
   AuthenticatedClubesRoute: typeof AuthenticatedClubesRoute
   AuthenticatedDeportesRoute: typeof AuthenticatedDeportesRoute
   AuthenticatedDeportistasClubesRoute: typeof AuthenticatedDeportistasClubesRoute
-  AuthenticatedDeportistasRoute: typeof AuthenticatedDeportistasRoute
   AuthenticatedDeportistasSeleccionesRoute: typeof AuthenticatedDeportistasSeleccionesRoute
   AuthenticatedEntrenadoresRoute: typeof AuthenticatedEntrenadoresRoute
   AuthenticatedEscenariosRoute: typeof AuthenticatedEscenariosRoute
@@ -322,7 +302,6 @@ const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedClubesRoute: AuthenticatedClubesRoute,
   AuthenticatedDeportesRoute: AuthenticatedDeportesRoute,
   AuthenticatedDeportistasClubesRoute: AuthenticatedDeportistasClubesRoute,
-  AuthenticatedDeportistasRoute: AuthenticatedDeportistasRoute,
   AuthenticatedDeportistasSeleccionesRoute:
     AuthenticatedDeportistasSeleccionesRoute,
   AuthenticatedEntrenadoresRoute: AuthenticatedEntrenadoresRoute,
