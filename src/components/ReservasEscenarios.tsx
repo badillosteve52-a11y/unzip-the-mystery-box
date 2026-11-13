@@ -65,6 +65,7 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
   const [tipoUsuario, setTipoUsuario] = useState<(typeof TIPOS_USUARIO)[number] | "">(""); const [tipoExterno, setTipoExterno] = useState<(typeof TIPOS_EXTERNOS)[number] | "">(""); const [identificacion, setIdentificacion] = useState(""); const [institucion, setInstitucion] = useState(""); const [cargo, setCargo] = useState("");
   const [correo, setCorreo] = useState("");
   const [motivo, setMotivo] = useState("");
+  const [verEstados, setVerEstados] = useState(false);
 
   const cargarReservas = useCallback(async () => {
     setCargando(true);
@@ -207,8 +208,22 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
         <div className="space-y-4">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div><h3 className="text-lg font-semibold">Agenda de reservas</h3><p className="text-sm text-muted-foreground">Filtra y administra las solicitudes registradas.</p></div>
-            {filtrosActivos && <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => { setFiltroFecha(""); setFiltroEscenario(""); setFiltroDependencia(""); }}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>}
+            <div className="flex items-center gap-2">
+              <Button type="button" variant="ghost" size="sm" className="w-fit text-muted-foreground" aria-expanded={verEstados} onClick={() => setVerEstados((v) => !v)}><Info className="mr-2 h-4 w-4" />¿Qué significa cada estado?<ChevronDown className={`ml-1 h-4 w-4 transition-transform ${verEstados ? "rotate-180" : ""}`} /></Button>
+              {filtrosActivos && <Button type="button" variant="ghost" size="sm" className="w-fit" onClick={() => { setFiltroFecha(""); setFiltroEscenario(""); setFiltroDependencia(""); }}><FilterX className="mr-2 h-4 w-4" />Limpiar filtros</Button>}
+            </div>
           </div>
+          {verEstados && <div className="rounded-2xl border bg-muted/20 p-4 sm:p-5">
+            <p className="text-sm font-medium">Los estados de una reserva</p>
+            <p className="mt-1 text-xs text-muted-foreground">Así se lee cada solicitud en la agenda. Cambia el estado desde el selector de cada tarjeta.</p>
+            <ul className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {ESTADOS_RESERVA.map((estado) => <li key={estado.value} className="flex items-start gap-2.5 rounded-xl border bg-background px-3 py-2.5">
+                <Badge variant="outline" className={`shrink-0 capitalize ${colorEstado(estado.value)}`}>{estado.label}</Badge>
+                <span className="text-xs leading-relaxed text-muted-foreground">{estado.descripcion}</span>
+              </li>)}
+            </ul>
+            <p className="mt-3 text-xs text-muted-foreground">«Atendida» es el estado final: indica que el Centro de Deportes puso el escenario a disposición del solicitante.</p>
+          </div>}
           <div className="grid gap-3 rounded-2xl border bg-muted/20 p-4 sm:grid-cols-2 xl:grid-cols-3">
             <div className="space-y-1.5"><Label htmlFor="filtro-fecha-reservas">Día</Label><Input id="filtro-fecha-reservas" type="date" value={filtroFecha} onChange={(e) => setFiltroFecha(e.target.value)} className="h-11 rounded-lg bg-background" /></div>
             <div className="space-y-1.5"><Label htmlFor="filtro-escenario-reservas">Cancha o escenario</Label><select id="filtro-escenario-reservas" value={filtroEscenario} onChange={(e) => setFiltroEscenario(e.target.value)} className="h-11 w-full rounded-lg border bg-background px-3 text-sm"><option value="">Todos los escenarios</option>{escenariosOrdenados.map((escenario) => <option key={escenario.id} value={escenario.id}>{escenario.nombre}</option>)}</select></div>
