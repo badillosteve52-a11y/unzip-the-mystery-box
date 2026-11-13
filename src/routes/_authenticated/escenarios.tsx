@@ -36,21 +36,27 @@ const FOTO_ESCENARIOS = {
   coliseo: "/escenarios/coliseo-basquet.png",
   gimnasio: "/escenarios/gimnasio.png",
   tenis: "/escenarios/tenis-campo.png",
+  futbolTenis: "/escenarios/futbol-tenis.png",
+  tenisMesa: "/escenarios/tenis-mesa.png",
+  ajedrez: "/escenarios/ajedrez.png",
   futbol: "/escenarios/futbol-sintetico.png",
   voleibol: "/escenarios/ecuavoley.png",
+  voleyTierra: "/escenarios/voley-tierra.png",
+  voleyPlaya: "/escenarios/voley-playa.png",
   basquet: "/escenarios/basquet.png",
 } as const;
 
 function fotoEscenario(nombre: string, tipo: string | null) {
   const texto = `${nombre} ${tipo ?? ""}`.toLocaleLowerCase();
-  // Vóley playa y ecuavóley de tierra no tienen foto propia: se muestran sin imagen.
-  if (texto.includes("playa") || texto.includes("tierra")) return null;
+  if (texto.includes("vóley playa") || texto.includes("voley playa")) return { src: FOTO_ESCENARIOS.voleyPlaya, alt: "Cancha de vóley playa" };
+  if (texto.includes("ecuavóley de tierra") || texto.includes("ecuavoley de tierra") || texto.includes("vóley de tierra") || texto.includes("voley de tierra")) return { src: FOTO_ESCENARIOS.voleyTierra, alt: "Cancha de vóley de tierra" };
   if (texto.includes("piscina")) return { src: FOTO_ESCENARIOS.piscina, alt: "Piscina cubierta" };
   if (texto.includes("estadio") || texto.includes("pista")) return { src: FOTO_ESCENARIOS.estadio, alt: "Estadio y pista deportiva" };
   if (texto.includes("coliseo")) return { src: FOTO_ESCENARIOS.coliseo, alt: "Cancha cubierta del coliseo" };
   if (texto.includes("gimnasio")) return { src: FOTO_ESCENARIOS.gimnasio, alt: "Gimnasio institucional" };
-  if (texto.includes("tenis de mesa") || texto.includes("ajedrez")) return null;
-  if (texto.includes("fútbol tenis") || texto.includes("futbol tenis")) return { src: FOTO_ESCENARIOS.futbol, alt: "Cancha de fútbol tenis" };
+  if (texto.includes("tenis de mesa")) return { src: FOTO_ESCENARIOS.tenisMesa, alt: "Sala con mesas de tenis de mesa" };
+  if (texto.includes("ajedrez")) return { src: FOTO_ESCENARIOS.ajedrez, alt: "Sala de ajedrez" };
+  if (texto.includes("fútbol tenis") || texto.includes("futbol tenis")) return { src: FOTO_ESCENARIOS.futbolTenis, alt: "Cancha de fútbol tenis" };
   if (texto.includes("tenis")) return { src: FOTO_ESCENARIOS.tenis, alt: "Canchas de tenis de campo" };
   if (texto.includes("fútbol") || texto.includes("futbol")) return { src: FOTO_ESCENARIOS.futbol, alt: "Cancha sintética de fútbol" };
   if (texto.includes("ecuavóley") || texto.includes("ecuavoley") || texto.includes("vóley") || texto.includes("voley") || texto.includes("arena")) {
