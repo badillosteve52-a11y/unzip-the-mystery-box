@@ -241,17 +241,14 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" /> {ms.length} integrantes
               </div>
-              {!esAdmin && <div className="mt-3 flex flex-wrap gap-2">
+              <div className="mt-3 flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => setNuevoEstudiante({ grupoId: g.id, cedula: "", nombres: "", apellidos: "", fecha_nacimiento: "", genero: "", region: "", facultad: "", carrera: "", pao: "" })}>
                   <UserPlus className="mr-2 h-4 w-4" /> Registrar estudiante
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => { setQ(""); setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) }); }}>
                   <Users className="mr-2 h-4 w-4" /> Vincular existente
                 </Button>
-              </div>}
-              {!esSel && esAdmin && <Button className="mt-3" size="sm" variant="outline" onClick={() => setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) })}>
-                <Users className="mr-2 h-4 w-4" /> Gestionar integrantes
-              </Button>}
+              </div>
               {!esSel && esAdmin && <div className="mt-3"><ImportExport nombre={`${g.nombre}-integrantes`} filas={() => []} onImport={(rows) => importarEnGrupo(g.id, rows)} ocultarExportar textoImportar="Importar Excel a este club" ayuda="Columnas aceptadas: Nombres y apellidos (nombres primero), fecha nacimiento, edad, cédula, género, región, facultad y Nivelación/PAO 1–9. Marca un solo PAO actual; se guarda en la ficha. La edad se calcula desde la fecha." /></div>}
 <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
                 {ms.map((m) => {
