@@ -1,8 +1,4 @@
-# Unzip The Mystery Box
 
-de momento solo abre mi .zip el que te envie. la pagina tienes que mostrarme oues
-
-This project was built with [Lovable](https://lovable.dev).
 
 **Live app**: https://unzip-the-mystery-box.lovable.app
 
