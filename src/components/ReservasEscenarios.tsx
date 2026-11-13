@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { CalendarDays, CheckCircle2, ChevronDown, Clock3, Download, Dumbbell, FilterX, Info, MapPin, Plus, UserRound, UsersRound, XCircle, Trash2 } from "lucide-react";
+import { CalendarCheck, CalendarDays, CheckCircle2, ChevronDown, Clock3, Download, FilterX, Info, MapPin, Plus, UserRound, UsersRound, XCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { CATALOGO_ESCENARIOS } from "@/lib/catalogos";
@@ -233,7 +233,7 @@ export function ReservasEscenarios({ escenarios }: { escenarios: Escenario[] }) 
           {reservasFiltradas.length ? <div className="grid gap-3 xl:grid-cols-2">
             {reservasFiltradas.map((r) => <article key={r.id} className="group rounded-2xl border bg-background p-4 shadow-sm transition-shadow hover:shadow-md sm:p-5">
               <div className="flex flex-col gap-3 border-b pb-4 sm:flex-row sm:items-start sm:justify-between">
-                <div className="flex min-w-0 items-start gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><Dumbbell className="h-5 w-5" /></div><div className="min-w-0"><h4 className="break-words font-semibold leading-snug">{r.escenario_nombre}</h4><p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"><span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{fechaBonita(r.fecha)}</span><span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{r.hora_inicio.slice(0, 5)}–{r.hora_fin.slice(0, 5)}</span></p></div></div>
+                <div className="flex min-w-0 items-start gap-3"><div className="rounded-xl bg-primary/10 p-2.5 text-primary"><CalendarCheck className="h-5 w-5" /></div><div className="min-w-0"><h4 className="break-words font-semibold leading-snug">{r.escenario_nombre}</h4><p className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground"><span className="inline-flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" />{fechaBonita(r.fecha)}</span><span className="inline-flex items-center gap-1"><Clock3 className="h-3.5 w-3.5" />{r.hora_inicio.slice(0, 5)}–{r.hora_fin.slice(0, 5)}</span></p></div></div>
                 <Badge variant="outline" className={`w-fit shrink-0 capitalize ${colorEstado(r.estado)}`}>{ESTADOS_RESERVA.find((estado) => estado.value === r.estado)?.label ?? r.estado.replaceAll("_", " ")}</Badge>
               </div>
               <div className="grid gap-3 py-4 sm:grid-cols-2">
