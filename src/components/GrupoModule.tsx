@@ -153,17 +153,16 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
         tiene_discapacidad: false,
       });
       if (errorDeportista) throw errorDeportista;
-      const { error: errorMembresia } = await supabase.from("club_miembros").insert({
-        club_id: nuevoEstudiante.grupoId,
-        deportista_id: deportistaId,
-      });
+      const { error: errorMembresia } = esSel
+        ? await supabase.from("seleccion_miembros").insert({ seleccion_id: nuevoEstudiante.grupoId, deportista_id: deportistaId })
+        : await supabase.from("club_miembros").insert({ club_id: nuevoEstudiante.grupoId, deportista_id: deportistaId });
       if (errorMembresia) throw errorMembresia;
       setNuevoEstudiante(null);
       await refrescar();
-      toast.success("Estudiante registrado en el club");
+      toast.success(`Estudiante registrado en la ${singular}`);
     } catch (error) {
       const mensaje = errMsg(error);
-      toast.error(mensaje.includes("duplicate") ? "Ya existe un deportista con esa cédula. Usa «Vincular estudiante» para agregarlo al club." : mensaje);
+      toast.error(mensaje.includes("duplicate") ? `Ya existe un deportista con esa cédula. Usa «Vincular existente» para agregarlo a la ${singular}.` : mensaje);
     } finally {
       setGuardandoEstudiante(false);
     }
@@ -242,7 +241,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" /> {ms.length} integrantes
               </div>
-              {!esSel && !esAdmin && <div className="mt-3 flex flex-wrap gap-2">
+              {!esAdmin && <div className="mt-3 flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => setNuevoEstudiante({ grupoId: g.id, cedula: "", nombres: "", apellidos: "", fecha_nacimiento: "", genero: "", region: "", facultad: "", carrera: "", pao: "" })}>
                   <UserPlus className="mr-2 h-4 w-4" /> Registrar estudiante
                 </Button>
@@ -297,7 +296,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
       <Dialog open={!!nuevoEstudiante} onOpenChange={(open) => !open && setNuevoEstudiante(null)}>
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Registrar estudiante en el club</DialogTitle>
+            <DialogTitle>Registrar estudiante en la {singular}</DialogTitle>
             <p className="text-sm text-muted-foreground">{grupos.find((g) => g.id === nuevoEstudiante?.grupoId)?.nombre}</p>
           </DialogHeader>
           <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void guardarEstudiante(); }}>
@@ -318,7 +317,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-facultad">Facultad</Label><select id="nuevo-club-facultad" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.facultad ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, facultad: event.target.value, carrera: "" })}><option value="">— Seleccionar —</option>{LISTA_FACULTADES.map((facultad) => <option key={facultad} value={facultad}>{facultad}</option>)}</select></div>
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-carrera">Carrera</Label><select id="nuevo-club-carrera" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm disabled:opacity-50" disabled={!nuevoEstudiante?.facultad} value={nuevoEstudiante?.carrera ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, carrera: event.target.value })}><option value="">— Seleccionar —</option>{(nuevoEstudiante?.facultad ? getCarrerasPorFacultad(nuevoEstudiante.facultad) : []).map((carrera) => <option key={carrera} value={carrera}>{carrera}</option>)}</select></div>
             </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setNuevoEstudiante(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : "Registrar en el club"}</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setNuevoEstudiante(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : `Registrar en la ${singular}`}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
