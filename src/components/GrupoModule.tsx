@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
-import { Download, FileUp, Pencil, Plus, Trash2, Users } from "lucide-react";
+import { Download, FileUp, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ import { Filtro } from "./Filtro";
 import { ImportExport } from "./ImportExport";
 import { errMsg, useRefrescar, type DatosCompletos, type Grupo } from "@/lib/db";
 import { calcularEdad } from "@/lib/edad"; import { importarDeportistas } from "@/lib/importar-deportistas";
+import { LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
 
 type Tipo = "selecciones" | "clubes";
 const authRoute = getRouteApi("/_authenticated");
@@ -31,6 +32,8 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const [periodo, setPeriodo] = useState("");
   const [deporte, setDeporte] = useState("");
   const [edit, setEdit] = useState<(Partial<Grupo> & { ids: Set<string> }) | null>(null);
+  const [nuevoEstudiante, setNuevoEstudiante] = useState<{ grupoId: string; cedula: string; nombres: string; apellidos: string; fecha_nacimiento: string; genero: string; region: string; facultad: string; carrera: string; pao: string } | null>(null);
+  const [guardandoEstudiante, setGuardandoEstudiante] = useState(false);
   const [q, setQ] = useState("");
   const [entrenador, setEntrenador] = useState<{ id?: string; grupoId: string; nombre: string; apellido: string; cedula: string; cargo: string } | null>(null);
   const [guardandoEntrenador, setGuardandoEntrenador] = useState(false);
@@ -131,6 +134,41 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
     }
   }
 
+  async function guardarEstudiante() {
+    if (!nuevoEstudiante || guardandoEstudiante) return;
+    setGuardandoEstudiante(true);
+    try {
+      const deportistaId = crypto.randomUUID();
+      const { error: errorDeportista } = await supabase.from("deportistas").insert({
+        id: deportistaId,
+        cedula: nuevoEstudiante.cedula.trim(),
+        nombres: nuevoEstudiante.nombres.trim(),
+        apellidos: nuevoEstudiante.apellidos.trim(),
+        fecha_nacimiento: nuevoEstudiante.fecha_nacimiento || null,
+        genero: nuevoEstudiante.genero || null,
+        region: nuevoEstudiante.region || null,
+        facultad: normalizarFacultad(nuevoEstudiante.facultad || null),
+        carrera: normalizarCarrera(nuevoEstudiante.carrera || null, normalizarFacultad(nuevoEstudiante.facultad || null)),
+        pao: nuevoEstudiante.pao || null,
+        tiene_discapacidad: false,
+      });
+      if (errorDeportista) throw errorDeportista;
+      const { error: errorMembresia } = await supabase.from("club_miembros").insert({
+        club_id: nuevoEstudiante.grupoId,
+        deportista_id: deportistaId,
+      });
+      if (errorMembresia) throw errorMembresia;
+      setNuevoEstudiante(null);
+      await refrescar();
+      toast.success("Estudiante registrado en el club");
+    } catch (error) {
+      const mensaje = errMsg(error);
+      toast.error(mensaje.includes("duplicate") ? "Ya existe un deportista con esa cédula. Usa «Vincular estudiante» para agregarlo al club." : mensaje);
+    } finally {
+      setGuardandoEstudiante(false);
+    }
+  }
+
   async function borrar(g: Grupo) {
     if (!confirm(`¿Eliminar "${g.nombre}"? Los deportistas no se borran.`)) return;
     const { error } = await supabase.from(tipo).delete().eq("id", g.id);
@@ -195,15 +233,26 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                   </div>
                 </div>
                 <div className="flex">
-                  <Button size="icon" variant="ghost" aria-label="Editar" onClick={() => setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) })}>
+                  {esAdmin && <Button size="icon" variant="ghost" aria-label="Editar club" onClick={() => setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) })}>
                     <Pencil className="h-4 w-4" />
-                  </Button>
+                  </Button>}
                   {esAdmin && <Button size="icon" variant="ghost" aria-label="Eliminar" onClick={() => borrar(g)}><Trash2 className="h-4 w-4" /></Button>}
                 </div>
               </div>
               <div className="mt-4 flex items-center gap-2 text-sm text-muted-foreground">
                 <Users className="h-4 w-4" /> {ms.length} integrantes
               </div>
+              {!esSel && !esAdmin && <div className="mt-3 flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => setNuevoEstudiante({ grupoId: g.id, cedula: "", nombres: "", apellidos: "", fecha_nacimiento: "", genero: "", region: "", facultad: "", carrera: "", pao: "" })}>
+                  <UserPlus className="mr-2 h-4 w-4" /> Registrar estudiante
+                </Button>
+                <Button size="sm" variant="outline" onClick={() => { setQ(""); setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) }); }}>
+                  <Users className="mr-2 h-4 w-4" /> Vincular existente
+                </Button>
+              </div>}
+              {!esSel && esAdmin && <Button className="mt-3" size="sm" variant="outline" onClick={() => setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) })}>
+                <Users className="mr-2 h-4 w-4" /> Gestionar integrantes
+              </Button>}
               {!esSel && esAdmin && <div className="mt-3"><ImportExport nombre={`${g.nombre}-integrantes`} filas={() => []} onImport={(rows) => importarEnGrupo(g.id, rows)} ocultarExportar textoImportar="Importar Excel a este club" ayuda="Columnas aceptadas: Nombres y apellidos (nombres primero), fecha nacimiento, edad, cédula, género, región, facultad y Nivelación/PAO 1–9. Marca un solo PAO actual; se guarda en la ficha. La edad se calcula desde la fecha." /></div>}
 <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
                 {ms.map((m) => {
@@ -241,6 +290,35 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
           <form className="space-y-4" onSubmit={(e) => { e.preventDefault(); void guardarEntrenador(); }}>
             {(["nombre", "apellido", "cedula", "cargo"] as const).map((campo) => <div key={campo} className="space-y-1.5"><Label htmlFor={`entrenador-${campo}`}>{campo === "cedula" ? "Cédula" : campo.charAt(0).toUpperCase() + campo.slice(1)}</Label><Input id={`entrenador-${campo}`} required value={entrenador?.[campo] ?? ""} onChange={(e) => entrenador && setEntrenador({ ...entrenador, [campo]: e.target.value })} /></div>)}
             <DialogFooter><Button type="button" variant="outline" onClick={() => setEntrenador(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEntrenador}>{guardandoEntrenador ? "Guardando…" : "Guardar"}</Button></DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!nuevoEstudiante} onOpenChange={(open) => !open && setNuevoEstudiante(null)}>
+        <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Registrar estudiante en el club</DialogTitle>
+            <p className="text-sm text-muted-foreground">{grupos.find((g) => g.id === nuevoEstudiante?.grupoId)?.nombre}</p>
+          </DialogHeader>
+          <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void guardarEstudiante(); }}>
+            <div className="space-y-1.5"><Label htmlFor="nuevo-club-cedula">Cédula</Label><Input id="nuevo-club-cedula" required inputMode="numeric" value={nuevoEstudiante?.cedula ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, cedula: event.target.value })} /></div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-nombres">Nombres</Label><Input id="nuevo-club-nombres" required value={nuevoEstudiante?.nombres ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, nombres: event.target.value })} /></div>
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-apellidos">Apellidos</Label><Input id="nuevo-club-apellidos" required value={nuevoEstudiante?.apellidos ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, apellidos: event.target.value })} /></div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-nacimiento">Fecha de nacimiento</Label><Input id="nuevo-club-nacimiento" type="date" value={nuevoEstudiante?.fecha_nacimiento ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, fecha_nacimiento: event.target.value })} /></div>
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-genero">Género</Label><select id="nuevo-club-genero" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.genero ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, genero: event.target.value })}><option value="">— Seleccionar —</option><option value="Masculino">Masculino</option><option value="Femenino">Femenino</option><option value="Otro">Otro</option></select></div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-region">Región</Label><select id="nuevo-club-region" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.region ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, region: event.target.value })}><option value="">— Seleccionar —</option>{["Sierra", "Costa", "Amazonía", "Insular"].map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-pao">Nivel / PAO actual</Label><select id="nuevo-club-pao" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.pao ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, pao: event.target.value })}><option value="">— Seleccionar —</option>{["Nivelación", ...Array.from({ length: 9 }, (_, index) => `PAO ${index + 1}`)].map((pao) => <option key={pao} value={pao}>{pao}</option>)}</select></div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-facultad">Facultad</Label><select id="nuevo-club-facultad" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.facultad ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, facultad: event.target.value, carrera: "" })}><option value="">— Seleccionar —</option>{LISTA_FACULTADES.map((facultad) => <option key={facultad} value={facultad}>{facultad}</option>)}</select></div>
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-carrera">Carrera</Label><select id="nuevo-club-carrera" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm disabled:opacity-50" disabled={!nuevoEstudiante?.facultad} value={nuevoEstudiante?.carrera ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, carrera: event.target.value })}><option value="">— Seleccionar —</option>{(nuevoEstudiante?.facultad ? getCarrerasPorFacultad(nuevoEstudiante.facultad) : []).map((carrera) => <option key={carrera} value={carrera}>{carrera}</option>)}</select></div>
+            </div>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setNuevoEstudiante(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : "Registrar en el club"}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
