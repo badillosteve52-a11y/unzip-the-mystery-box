@@ -29,9 +29,10 @@ type ParticipacionState = {
   grupoId: string;
 };
 
-export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
+export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" | "TODOS" }) {
   const { role } = authRoute.useRouteContext();
   const esSel = tipo === "SELECCION";
+  const esUnificado = tipo === "TODOS";
   const { data } = useDatos();
   const refrescar = useRefrescar();
   const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "", q: "" });
@@ -40,11 +41,12 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
   const lista = useMemo(() => {
     if (!data) return [];
+    if (esUnificado) return filtrarDeportistas(data, f);
     const propios = new Set((esSel ? data.selMiembros : data.clubMiembros).map((m) => m.deportista_id));
     const conGrupo = new Set([...data.selMiembros, ...data.clubMiembros].map((m) => m.deportista_id));
     // Se muestran los del módulo y los que aún no tienen ningún grupo (para no perderlos)
     return filtrarDeportistas(data, f).filter((d) => propios.has(d.id) || !conGrupo.has(d.id));
-  }, [data, f, esSel]);
+  }, [data, f, esSel, esUnificado]);
 
   // Facultades para el formulario: solo nombres oficiales del catálogo
   const opcionesFacultadForm = useMemo(() => {
@@ -80,6 +82,14 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
   const gruposDe = (id: string) => ({
     sel: data.selMiembros.filter((m) => m.deportista_id === id).length,
     club: data.clubMiembros.filter((m) => m.deportista_id === id).length,
+    selecciones: data.selMiembros.filter((m) => m.deportista_id === id).flatMap((m) => {
+      const grupo = data.selecciones.find((g) => g.id === m.grupo_id);
+      return grupo ? [{ id: grupo.id, nombre: grupo.nombre }] : [];
+    }),
+    clubes: data.clubMiembros.filter((m) => m.deportista_id === id).flatMap((m) => {
+      const grupo = data.clubes.find((g) => g.id === m.grupo_id);
+      return grupo ? [{ id: grupo.id, nombre: grupo.nombre }] : [];
+    }),
   });
 
   async function guardar() {
@@ -229,12 +239,12 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
   return (
     <div>
       <PageHeader
-        title={esSel ? "Deportistas de selecciones" : "Deportistas de clubes"}
-        subtitle={esSel ? "Estudiantes que integran las selecciones deportivas." : "Estudiantes que integran los clubes deportivos."}
+        title={esUnificado ? "Deportistas" : esSel ? "Deportistas de selecciones" : "Deportistas de clubes"}
+        subtitle={esUnificado ? role === "admin" ? "Una sola ficha por estudiante. Asígnalo a sus clubes y selecciones desde aquí." : "Consulta tus deportistas y asígnalos a tus grupos. Para registrar uno nuevo, entra al club o selección correspondiente." : esSel ? "Estudiantes que integran las selecciones deportivas." : "Estudiantes que integran los clubes deportivos."}
       >
         {role === "admin" && <ImportExport
-          nombre={esSel ? "deportistas-selecciones" : "deportistas-clubes"}
-          ayuda="Excel de clubes: Nombres y apellidos (nombres primero), fecha nacimiento, cédula, género, región, facultad y una marca en Nivelación/PAO 1–9. La edad se calcula desde la fecha."
+          nombre={esUnificado ? "deportistas" : esSel ? "deportistas-selecciones" : "deportistas-clubes"}
+          ayuda={esUnificado ? "Importa estudiantes al padrón general sin duplicar fichas. Luego asígnalos a clubes o selecciones desde esta página." : "Excel de clubes: Nombres y apellidos (nombres primero), fecha nacimiento, cédula, género, región, facultad y una marca en Nivelación/PAO 1–9. La edad se calcula desde la fecha."}
           onImport={(rows) => data ? importarDeportistas(rows, { esSeleccion: esSel, deportes: data.deportes }).then((cantidad) => { refrescar(); return cantidad; }) : Promise.resolve(0)}
           filas={() =>
             lista.map((d) => ({
@@ -253,12 +263,12 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
             }))
           }
         />}
-        <Button variant="outline" onClick={() => setParticipacion({ deportistaId: lista[0]?.id ?? "", tipo, grupoId: "" })}>
-          <UserPlus className="mr-2 h-4 w-4" /> Registrar participación
+        <Button variant="outline" onClick={() => setParticipacion({ deportistaId: "", tipo: esSel ? "SELECCION" : "CLUB", grupoId: "" })}>
+          <UserPlus className="mr-2 h-4 w-4" /> {esUnificado ? "Asignar a grupo" : "Registrar participación"}
         </Button>
-        <Button onClick={() => setEdit({ deportes: new Set() })}>
+        {(role === "admin" || !esUnificado) && <Button onClick={() => setEdit({ deportes: new Set() })}>
           <Plus className="mr-2 h-4 w-4" /> Nuevo deportista
-        </Button>
+        </Button>}
       </PageHeader>
 
       <div className="mb-4 flex flex-wrap items-end gap-3">
@@ -294,7 +304,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
               <TableHead>Carrera / Facultad</TableHead>
               <TableHead>Región</TableHead>
               <TableHead>Deportes</TableHead>
-              <TableHead>{esSel ? "Selecciones" : "Clubes"}</TableHead>
+              <TableHead>{esUnificado ? "Clubes y selecciones" : esSel ? "Selecciones" : "Clubes"}</TableHead>
               <TableHead className="w-32 text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -318,15 +328,23 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <TableCell>
                     <div className="flex flex-wrap gap-1">{depsDe(d.id).map((n) => <Badge key={n} variant="outline">{n}</Badge>)}</div>
                   </TableCell>
-                  <TableCell className="text-sm">{esSel ? g.sel : g.club}</TableCell>
+                  <TableCell className="text-sm">
+                    {esUnificado ? (
+                      <div className="flex max-w-md flex-wrap gap-1">
+                        {g.clubes.map((grupo) => <Badge key={`club-${grupo.id}`} variant="outline">Club · {grupo.nombre}</Badge>)}
+                        {g.selecciones.map((grupo) => <Badge key={`seleccion-${grupo.id}`} variant="secondary">Selección · {grupo.nombre}</Badge>)}
+                        {!g.clubes.length && !g.selecciones.length && <span className="text-muted-foreground">Sin asignar</span>}
+                      </div>
+                    ) : esSel ? g.sel : g.club}
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
                       <Button
                         size="icon"
                         variant="ghost"
-                        title="Registrar participación"
-                        aria-label="Registrar participación"
-                        onClick={() => setParticipacion({ deportistaId: d.id, tipo, grupoId: "" })}
+                        title={esUnificado ? "Asignar a grupo" : "Registrar participación"}
+                        aria-label={esUnificado ? "Asignar a grupo" : "Registrar participación"}
+                        onClick={() => setParticipacion({ deportistaId: d.id, tipo: esSel ? "SELECCION" : "CLUB", grupoId: "" })}
                       >
                         <UserPlus className="h-4 w-4 text-primary" />
                       </Button>
@@ -389,7 +407,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   {REGIONES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
-              {!edit.id && (
+                  {!edit.id && !esUnificado && (
                 <div className="space-y-1.5 sm:col-span-2">
                   <Label>{esSel ? "Selección" : "Club"}</Label>
                   <select
@@ -498,7 +516,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button>
-            <Button onClick={guardar} disabled={!edit?.cedula || !edit?.nombres || !edit?.apellidos || (!edit?.id && !edit?.grupoId)}>Guardar</Button>
+            <Button onClick={guardar} disabled={!edit?.cedula || !edit?.nombres || !edit?.apellidos || (!edit?.id && !esUnificado && !edit?.grupoId)}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, CalendarRange, ChevronDown, Dumbbell, Flag, LogOut, Medal, ShieldCheck, Shirt, Trophy } from "lucide-react";
+import { BarChart3, Building2, CalendarRange, ChevronDown, Dumbbell, Flag, LogOut, ShieldCheck, Trophy, UsersRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -28,8 +28,7 @@ export const Route = createFileRoute("/_authenticated")({
 
 const nav = [
   { to: "/panel", label: "Panel", corto: "Panel", icon: BarChart3 },
-  { to: "/deportistas-selecciones", label: "Deportistas de selecciones", corto: "Selecciones", icon: Medal },
-  { to: "/deportistas-clubes", label: "Deportistas de clubes", corto: "Clubes", icon: Shirt },
+  { to: "/deportistas", label: "Deportistas", corto: "Deportistas", icon: UsersRound },
   { to: "/selecciones", label: "Selecciones", corto: "Selecciones", icon: Flag },
   { to: "/clubes", label: "Clubes", corto: "Clubes", icon: Trophy },
   { to: "/deportes", label: "Deportes", corto: "Deportes", icon: Dumbbell },
@@ -39,7 +38,7 @@ const nav = [
 ] as const;
 
 function NavLista({ activo, onNavigate, role }: { activo: string; onNavigate?: () => void; role: string | null }) {
-  const accesosPersonal = new Set(["/panel", "/deportistas-selecciones", "/deportistas-clubes", "/selecciones", "/clubes"]);
+  const accesosPersonal = new Set(["/panel", "/deportistas", "/deportistas-clubes", "/deportistas-selecciones", "/selecciones", "/clubes"]);
   const enlaces = role === "admin" ? nav : nav.filter((item) => role === "gestor_grupos" && accesosPersonal.has(item.to));
   return (
     <nav aria-label="Secciones" className="flex flex-col gap-1.5">
@@ -104,7 +103,7 @@ function Layout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname ?? "" });
   const [abierto, setAbierto] = useState(false);
 
-  const accesosPersonal = new Set(["/panel", "/deportistas-selecciones", "/deportistas-clubes", "/selecciones", "/clubes"]);
+  const accesosPersonal = new Set(["/panel", "/deportistas", "/deportistas-clubes", "/deportistas-selecciones", "/selecciones", "/clubes"]);
   const enlaces = role === "admin" ? nav : nav.filter((item) => role === "gestor_grupos" && accesosPersonal.has(item.to));
   useEffect(() => {
     if (role === "gestor_grupos" && !accesosPersonal.has(pathname)) {
