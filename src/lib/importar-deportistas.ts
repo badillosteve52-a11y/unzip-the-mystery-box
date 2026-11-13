@@ -14,9 +14,9 @@ export async function importarDeportistas(
   const registros = rows
     .map((r, index) => {
       const fila = index + 2;
-      const nombreCompleto = texto(r.nombresyapellidos ?? r.apellidosynombres ?? r.nombrecompleto);
-      let nombres = texto(r.nombres ?? r.nombre);
-      let apellidos = texto(r.apellidos ?? r.apellido);
+      const nombreCompleto = texto(r["nombresyapellidos"] ?? r["apellidosynombres"] ?? r["nombrecompleto"]);
+      let nombres = texto(r["nombres"] ?? r["nombre"]);
+      let apellidos = texto(r["apellidos"] ?? r["apellido"]);
       if ((!nombres || !apellidos) && nombreCompleto) {
         const partesComa = nombreCompleto.split(",").map((parte) => parte.trim()).filter(Boolean);
         if (partesComa.length >= 2) {
@@ -33,9 +33,9 @@ export async function importarDeportistas(
           }
         }
       }
-      const cedulaOriginal = texto(r.cedula).replace(/\s+/g, "");
+      const cedulaOriginal = texto(r["cedula"]).replace(/\s+/g, "");
       const cedula = /^\d{1,9}$/.test(cedulaOriginal) ? cedulaOriginal.padStart(10, "0") : cedulaOriginal;
-      const fechaOriginal = r.fechanacimiento ?? r.fechadenacimiento ?? r.fechanac;
+      const fechaOriginal = r["fechanacimiento"] ?? r["fechadenacimiento"] ?? r["fechanac"];
       const fechaNacimiento = normalizarFecha(fechaOriginal);
       if (Object.values(r).every((valor) => texto(valor) === "")) return null;
       if (!/^\d{10}$/.test(cedula)) {
@@ -50,9 +50,9 @@ export async function importarDeportistas(
         errores.push("fila " + fila + ": la fecha de nacimiento no se reconoce");
         return null;
       }
-      const columnasPao = [
+      const columnasPao: [string, string][] = [
         ["nivelacion", "Nivelación"],
-        ...Array.from({ length: 9 }, (_, i) => ["pao" + (i + 1), "PAO " + (i + 1)]),
+        ...Array.from({ length: 9 }, (_, i): [string, string] => ["pao" + (i + 1), "PAO " + (i + 1)]),
       ];
       const paosMarcados = columnasPao.filter(([clave]) => {
         const valor = texto(r[clave]).toLowerCase();
@@ -62,20 +62,20 @@ export async function importarDeportistas(
         errores.push("fila " + fila + ": hay más de un PAO marcado");
         return null;
       }
-      const facultad = normalizarFacultad(texto(r.facultad) || null);
+      const facultad = normalizarFacultad(texto(r["facultad"]) || null);
       return {
         _fila: fila,
-        _deps: texto(r.deportes ?? r.deporte).split(/[,;]/).map((s) => s.trim()).filter(Boolean),
+        _deps: texto(r["deportes"] ?? r["deporte"]).split(/[,;]/).map((s) => s.trim()).filter(Boolean),
         cedula,
         nombres,
         apellidos,
         fecha_nacimiento: fechaNacimiento,
-        pao: paosMarcados[0]?.[1] ?? (texto(r.pao) || null),
-        carrera: normalizarCarrera(texto(r.carrera) || null, facultad),
+        pao: paosMarcados[0]?.[1] ?? (texto(r["pao"]) || null),
+        carrera: normalizarCarrera(texto(r["carrera"]) || null, facultad),
         facultad,
-        genero: normalizarGenero(r.genero ?? r.sexo),
-        region: normalizarRegion(r.region ?? r.zona),
-        tiene_discapacidad: opciones.esSeleccion ? false : normalizarSiNo(r.discapacidad ?? r.tienediscapacidad),
+        genero: normalizarGenero(r["genero"] ?? r["sexo"]),
+        region: normalizarRegion(r["region"] ?? r["zona"]),
+        tiene_discapacidad: opciones.esSeleccion ? false : normalizarSiNo(r["discapacidad"] ?? r["tienediscapacidad"]),
       };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);

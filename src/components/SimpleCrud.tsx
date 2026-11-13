@@ -121,15 +121,15 @@ async function copiarSeleccionesPeriodo(origenId: string, destinoId: string) {
 }
 
 function esPeriodoPosterior(destino: Record<string, unknown>, origen: Row) {
-  const fechaDestino = Date.parse(String(destino.fecha_inicio ?? ""));
-  const fechaOrigen = Date.parse(String(origen.fecha_inicio ?? ""));
+  const fechaDestino = Date.parse(String(destino["fecha_inicio"] ?? ""));
+  const fechaOrigen = Date.parse(String(origen["fecha_inicio"] ?? ""));
   if (Number.isFinite(fechaDestino) && Number.isFinite(fechaOrigen) && fechaDestino !== fechaOrigen) {
     return fechaDestino > fechaOrigen;
   }
-  const creadoDestino = Date.parse(String(destino.created_at ?? ""));
-  const creadoOrigen = Date.parse(String(origen.created_at ?? ""));
+  const creadoDestino = Date.parse(String(destino["created_at"] ?? ""));
+  const creadoOrigen = Date.parse(String(origen["created_at"] ?? ""));
   if (Number.isFinite(creadoDestino) && Number.isFinite(creadoOrigen)) return creadoDestino > creadoOrigen;
-  return !destino.id;
+  return !destino["id"];
 }
 
 
@@ -191,10 +191,10 @@ export function SimpleCrud({
       let seCopioNomina = false;
 
       if (tabla === "periodos") {
-        const activar = datos.activo === true;
-        const periodoActual = filas.find((fila) => fila.activo === true && fila.id !== edit.id);
+        const activar = datos["activo"] === true;
+        const periodoActual = filas.find((fila) => fila["activo"] === true && fila.id !== edit.id);
         const periodoEditado = filas.find((fila) => fila.id === edit.id);
-        const yaEstabaActivo = periodoEditado?.activo === true;
+        const yaEstabaActivo = periodoEditado?.["activo"] === true;
         const guardarInactivo = activar && !yaEstabaActivo;
         const datosGuardar = { ...datos, activo: guardarInactivo ? false : activar };
         const resultado = edit.id
@@ -240,7 +240,7 @@ export function SimpleCrud({
       refrescar();
     } catch (e) {
       if (periodoGuardado && !edit.id) {
-        setEdit({ ...edit, id: periodoGuardado.id, created_at: periodoGuardado.created_at });
+        setEdit({ ...edit, id: periodoGuardado.id, created_at: periodoGuardado["created_at"] });
       }
       toast.error(errMsg(e));
     }
