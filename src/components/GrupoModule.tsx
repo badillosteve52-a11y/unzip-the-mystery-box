@@ -9,9 +9,11 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { PageHeader } from "./PageHeader";
 import { Filtro } from "./Filtro";
 import { ImportExport } from "./ImportExport";
+import { copiarNominaPeriodo } from "./SimpleCrud";
 import { errMsg, useRefrescar, type DatosCompletos, type Grupo } from "@/lib/db";
 import { calcularEdad } from "@/lib/edad"; import { importarDeportistas } from "@/lib/importar-deportistas";
 import { LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
@@ -30,13 +32,16 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
 
   const activo = data.periodos.find((p) => p.activo)?.id ?? "";
   const [periodo, setPeriodo] = useState("");
+  const [copiandoPeriodo, setCopiandoPeriodo] = useState(false);
   const [deporte, setDeporte] = useState("");
   const [edit, setEdit] = useState<(Partial<Grupo> & { ids: Set<string> }) | null>(null);
-  const [nuevoEstudiante, setNuevoEstudiante] = useState<{ grupoId: string; cedula: string; nombres: string; apellidos: string; fecha_nacimiento: string; genero: string; region: string; facultad: string; carrera: string; pao: string } | null>(null);
+  const [nuevoEstudiante, setNuevoEstudiante] = useState<{ grupoId: string; cedula: string; nombres: string; apellidos: string; fecha_nacimiento: string; genero: string; region: string; facultad: string; carrera: string; pao: string; tiene_discapacidad: boolean } | null>(null);
   const [guardandoEstudiante, setGuardandoEstudiante] = useState(false);
   const [q, setQ] = useState("");
   const [entrenador, setEntrenador] = useState<{ id?: string; grupoId: string; nombre: string; apellido: string; cedula: string; cargo: string } | null>(null);
   const [guardandoEntrenador, setGuardandoEntrenador] = useState(false);
+  const [entrenadorAQuitar, setEntrenadorAQuitar] = useState<{ id: string; nombre: string; grupoId: string } | null>(null);
+  const [quitandoEntrenador, setQuitandoEntrenador] = useState(false);
   const [subiendoCertificado, setSubiendoCertificado] = useState<string | null>(null);
   const [descargandoGrupo, setDescargandoGrupo] = useState<string | null>(null);
 
@@ -85,8 +90,24 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
     toast.success("Entrenador guardado");
   }
 
+  async function quitarEntrenador() {
+    if (!entrenadorAQuitar || quitandoEntrenador) return;
+    setQuitandoEntrenador(true);
+    const campoGrupo = esSel ? "seleccion_id" : "club_id";
+    const { error } = await supabase
+      .from("entrenadores")
+      .update({ [campoGrupo]: null })
+      .eq("id", entrenadorAQuitar.id)
+      .eq(campoGrupo, entrenadorAQuitar.grupoId);
+    setQuitandoEntrenador(false);
+    if (error) { toast.error(errMsg(error)); return; }
+    setEntrenadorAQuitar(null);
+    await refrescar();
+    toast.success("Entrenador quitado del grupo");
+  }
+
     async function importarEnGrupo(grupoId: string, rows: Record<string, unknown>[]) {
-    const cantidad = await importarDeportistas(rows, { esSeleccion: esSel, grupoId, deportes: data.deportes });
+    const cantidad = await importarDeportistas(rows, { esSeleccion: esSel, grupoId });
     await refrescar();
     return cantidad;
   }
@@ -98,6 +119,37 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
   const vistos = grupos.filter(
     (g) => (!periodo || g.periodo_id === periodo || !g.periodo_id) && (!deporte || g.deporte_id === deporte)
   );
+
+  async function cambiarPeriodo(nuevoPeriodoId: string) {
+    setPeriodo(nuevoPeriodoId);
+    if (!esAdmin || !nuevoPeriodoId || copiandoPeriodo) return;
+    const destino = data.periodos.find((p) => p.id === nuevoPeriodoId);
+    const periodoActivo = data.periodos.find((p) => p.id === activo);
+    if (!destino || grupos.some((g) => g.periodo_id === nuevoPeriodoId)) return;
+
+    const fechaPeriodo = (p: (typeof data.periodos)[number]) => {
+      const inicio = Date.parse(p.fecha_inicio ?? "");
+      return Number.isFinite(inicio) ? inicio : Date.parse(p.created_at);
+    };
+    const inicioDestino = fechaPeriodo(destino);
+    if (!Number.isFinite(inicioDestino)) return;
+    if (periodoActivo && periodoActivo.id !== destino.id && fechaPeriodo(destino) < fechaPeriodo(periodoActivo)) return;
+    const origen = data.periodos
+      .filter((p) => p.id !== destino.id && fechaPeriodo(p) < inicioDestino && grupos.some((g) => g.periodo_id === p.id))
+      .sort((a, b) => fechaPeriodo(b) - fechaPeriodo(a))[0];
+    if (!origen) return;
+
+    setCopiandoPeriodo(true);
+    try {
+      await copiarNominaPeriodo(origen.id, destino.id);
+      await refrescar();
+      toast.success(`Se copiaron clubes, selecciones e integrantes desde ${origen.nombre}`);
+    } catch (error) {
+      toast.error(`No se pudo copiar la nómina del período anterior: ${errMsg(error)}`);
+    } finally {
+      setCopiandoPeriodo(false);
+    }
+  }
 
   async function guardar() {
     if (!edit?.nombre) return;
@@ -150,7 +202,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
         facultad: normalizarFacultad(nuevoEstudiante.facultad || null),
         carrera: normalizarCarrera(nuevoEstudiante.carrera || null, normalizarFacultad(nuevoEstudiante.facultad || null)),
         pao: nuevoEstudiante.pao || null,
-        tiene_discapacidad: false,
+        tiene_discapacidad: nuevoEstudiante.tiene_discapacidad,
       });
       if (errorDeportista) throw errorDeportista;
       const { error: errorMembresia } = esSel
@@ -214,8 +266,9 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
       </PageHeader>
 
       <div className="mb-5 flex flex-wrap gap-3">
-        <Filtro label="Período" value={periodo} onChange={setPeriodo} opciones={data.periodos.map((p) => ({ value: p.id, label: p.nombre }))} />
+        <Filtro label="Período" value={periodo} onChange={(value) => void cambiarPeriodo(value)} opciones={data.periodos.map((p) => ({ value: p.id, label: p.nombre }))} />
         <Filtro label="Deporte" value={deporte} onChange={setDeporte} opciones={data.deportes.map((p) => ({ value: p.id, label: p.nombre }))} />
+        {copiandoPeriodo && <span role="status" className="self-end pb-2 text-sm text-muted-foreground">Copiando nómina del período anterior…</span>}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
@@ -242,7 +295,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                 <Users className="h-4 w-4" /> {ms.length} integrantes
               </div>
               <div className="mt-3 flex flex-wrap gap-2">
-                <Button size="sm" onClick={() => setNuevoEstudiante({ grupoId: g.id, cedula: "", nombres: "", apellidos: "", fecha_nacimiento: "", genero: "", region: "", facultad: "", carrera: "", pao: "" })}>
+                <Button size="sm" onClick={() => setNuevoEstudiante({ grupoId: g.id, cedula: "", nombres: "", apellidos: "", fecha_nacimiento: "", genero: "", region: "", facultad: "", carrera: "", pao: "", tiene_discapacidad: false })}>
                   <UserPlus className="mr-2 h-4 w-4" /> Registrar estudiante
                 </Button>
                 <Button size="sm" variant="outline" onClick={() => { setQ(""); setEdit({ ...g, ids: new Set(ms.map((m) => m.deportista_id)) }); }}>
@@ -269,7 +322,10 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                 {data.entrenadores.filter((e) => esSel ? e.seleccion_id === g.id : e.club_id === g.id).map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
                     <span className="min-w-0 break-words"><span className="font-medium">{e.nombre} {e.apellido}</span><span className="block text-xs text-muted-foreground">{e.cargo} · {e.cedula}</span></span>
-                    {esAdmin && <Button size="icon" variant="ghost" aria-label={`Editar entrenador ${e.nombre} ${e.apellido}`} onClick={() => setEntrenador({ ...e, grupoId: g.id })}><Pencil className="h-4 w-4" /></Button>}
+                    {esAdmin && <div className="flex shrink-0 items-center">
+                      <Button size="icon" variant="ghost" aria-label={`Editar entrenador ${e.nombre} ${e.apellido}`} onClick={() => setEntrenador({ ...e, grupoId: g.id })}><Pencil className="h-4 w-4" /></Button>
+                      <Button size="icon" variant="ghost" aria-label={`Quitar entrenador ${e.nombre} ${e.apellido} de ${g.nombre}`} onClick={() => setEntrenadorAQuitar({ id: e.id, nombre: `${e.nombre} ${e.apellido}`, grupoId: g.id })}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                    </div>}
                   </div>
                 ))}
                 {esAdmin && <Button variant="outline" size="sm" onClick={() => setEntrenador({ grupoId: g.id, nombre: "", apellido: "", cedula: "", cargo: "" })}><Plus className="mr-2 h-4 w-4" />Agregar entrenador</Button>}
@@ -290,6 +346,23 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
         </DialogContent>
       </Dialog>
 
+      <AlertDialog open={!!entrenadorAQuitar} onOpenChange={(open) => !open && !quitandoEntrenador && setEntrenadorAQuitar(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Quitar entrenador del grupo</AlertDialogTitle>
+            <AlertDialogDescription>
+              {entrenadorAQuitar?.nombre} dejará de aparecer en {grupos.find((g) => g.id === entrenadorAQuitar?.grupoId)?.nombre}. Sus datos no se borrarán.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={quitandoEntrenador}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction disabled={quitandoEntrenador} onClick={(event) => { event.preventDefault(); void quitarEntrenador(); }}>
+              {quitandoEntrenador ? "Quitando…" : "Quitar entrenador"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <Dialog open={!!nuevoEstudiante} onOpenChange={(open) => !open && setNuevoEstudiante(null)}>
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
@@ -299,20 +372,24 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
           <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void guardarEstudiante(); }}>
             <div className="space-y-1.5"><Label htmlFor="nuevo-club-cedula">Cédula</Label><Input id="nuevo-club-cedula" required inputMode="numeric" value={nuevoEstudiante?.cedula ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, cedula: event.target.value })} /></div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label htmlFor="nuevo-club-nombres">Nombres</Label><Input id="nuevo-club-nombres" required value={nuevoEstudiante?.nombres ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, nombres: event.target.value })} /></div>
-              <div className="space-y-1.5"><Label htmlFor="nuevo-club-apellidos">Apellidos</Label><Input id="nuevo-club-apellidos" required value={nuevoEstudiante?.apellidos ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, apellidos: event.target.value })} /></div>
-            </div>
-            <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-nacimiento">Fecha de nacimiento</Label><Input id="nuevo-club-nacimiento" type="date" value={nuevoEstudiante?.fecha_nacimiento ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, fecha_nacimiento: event.target.value })} /></div>
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-genero">Género</Label><select id="nuevo-club-genero" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.genero ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, genero: event.target.value })}><option value="">— Seleccionar —</option><option value="Masculino">Masculino</option><option value="Femenino">Femenino</option><option value="Otro">Otro</option></select></div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5"><Label htmlFor="nuevo-club-region">Región</Label><select id="nuevo-club-region" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.region ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, region: event.target.value })}><option value="">— Seleccionar —</option>{["Sierra", "Costa", "Amazonía", "Insular"].map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
-              <div className="space-y-1.5"><Label htmlFor="nuevo-club-pao">Nivel / PAO actual</Label><select id="nuevo-club-pao" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.pao ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, pao: event.target.value })}><option value="">— Seleccionar —</option>{["Nivelación", ...Array.from({ length: 9 }, (_, index) => `PAO ${index + 1}`)].map((pao) => <option key={pao} value={pao}>{pao}</option>)}</select></div>
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-nombres">Nombres</Label><Input id="nuevo-club-nombres" required value={nuevoEstudiante?.nombres ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, nombres: event.target.value })} /></div>
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-apellidos">Apellidos</Label><Input id="nuevo-club-apellidos" required value={nuevoEstudiante?.apellidos ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, apellidos: event.target.value })} /></div>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-region">Región de procedencia</Label><select id="nuevo-club-region" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.region ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, region: event.target.value })}><option value="">— Seleccionar —</option>{["Sierra", "Costa", "Amazonía", "Insular"].map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-discapacidad">¿Tiene discapacidad?</Label><select id="nuevo-club-discapacidad" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.tiene_discapacidad ? "si" : "no"} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, tiene_discapacidad: event.target.value === "si" })}><option value="no">No</option><option value="si">Sí</option></select></div>
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-facultad">Facultad</Label><select id="nuevo-club-facultad" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.facultad ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, facultad: event.target.value, carrera: "" })}><option value="">— Seleccionar —</option>{LISTA_FACULTADES.map((facultad) => <option key={facultad} value={facultad}>{facultad}</option>)}</select></div>
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-carrera">Carrera</Label><select id="nuevo-club-carrera" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm disabled:opacity-50" disabled={!nuevoEstudiante?.facultad} value={nuevoEstudiante?.carrera ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, carrera: event.target.value })}><option value="">— Seleccionar —</option>{(nuevoEstudiante?.facultad ? getCarrerasPorFacultad(nuevoEstudiante.facultad) : []).map((carrera) => <option key={carrera} value={carrera}>{carrera}</option>)}</select></div>
+            </div>
+            <div className="grid items-end gap-4 sm:grid-cols-2">
+              <div className="space-y-1.5"><Label htmlFor="nuevo-club-pao">Nivel / PAO actual</Label><select id="nuevo-club-pao" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.pao ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, pao: event.target.value })}><option value="">— Seleccionar —</option>{["Nivelación", ...Array.from({ length: 9 }, (_, index) => `PAO ${index + 1}`)].map((pao) => <option key={pao} value={pao}>{pao}</option>)}</select></div>
+              <p className="pb-2 text-sm text-muted-foreground">Edad: <strong className="text-foreground">{calcularEdad(nuevoEstudiante?.fecha_nacimiento) ?? "—"}</strong> (se calcula automáticamente)</p>
             </div>
             <DialogFooter><Button type="button" variant="outline" onClick={() => setNuevoEstudiante(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : `Registrar en la ${singular}`}</Button></DialogFooter>
           </form>

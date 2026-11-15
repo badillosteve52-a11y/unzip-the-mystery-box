@@ -3,13 +3,11 @@ import { normalizarFecha } from "@/lib/edad";
 import { normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
 
 export type FilaExcel = Record<string, unknown>;
-type DeporteImportable = { id: string; nombre: string };
 
 export async function importarDeportistas(
   rows: FilaExcel[],
-  opciones: { esSeleccion: boolean; grupoId?: string; deportes: DeporteImportable[] },
+  opciones: { esSeleccion: boolean; grupoId?: string },
 ) {
-  const deportesMap = new Map(opciones.deportes.map((d) => [d.nombre.toLowerCase(), d.id]));
   const errores: string[] = [];
   const registros = rows
     .map((r, index) => {
@@ -65,7 +63,6 @@ export async function importarDeportistas(
       const facultad = normalizarFacultad(texto(r["facultad"]) || null);
       return {
         _fila: fila,
-        _deps: texto(r["deportes"] ?? r["deporte"]).split(/[,;]/).map((s) => s.trim()).filter(Boolean),
         cedula,
         nombres,
         apellidos,
@@ -75,7 +72,7 @@ export async function importarDeportistas(
         facultad,
         genero: normalizarGenero(r["genero"] ?? r["sexo"]),
         region: normalizarRegion(r["region"] ?? r["zona"]),
-        tiene_discapacidad: opciones.esSeleccion ? false : normalizarSiNo(r["discapacidad"] ?? r["tienediscapacidad"]),
+        tiene_discapacidad: normalizarSiNo(r["discapacidad"] ?? r["tienediscapacidad"]),
       };
     })
     .filter((r): r is NonNullable<typeof r> => r !== null);
@@ -91,25 +88,12 @@ export async function importarDeportistas(
   }
   if (!registros.length) throw new Error("El Excel no contiene filas de deportistas");
 
-  const nuevos = [...new Set(registros.flatMap((r) => r._deps))].filter((nombre) => !deportesMap.has(nombre.toLowerCase()));
-  if (nuevos.length) {
-    const { data, error } = await supabase.from("deportes").insert(nuevos.map((nombre) => ({ nombre }))).select();
-    if (error) throw error;
-    data.forEach((deporte) => deportesMap.set(deporte.nombre.toLowerCase(), deporte.id));
-  }
   const { data: guardados, error } = await supabase
     .from("deportistas")
-    .upsert(registros.map(({ _deps: _d, _fila: _f, ...registro }) => registro), { onConflict: "cedula" })
+    .upsert(registros.map(({ _fila: _f, ...registro }) => registro), { onConflict: "cedula" })
     .select("id, cedula");
   if (error) throw error;
   const idPorCedula = new Map(guardados.map((deportista) => [deportista.cedula, deportista.id]));
-  const deportesDeportistas = registros.flatMap((registro) =>
-    registro._deps.map((nombre) => ({ deportista_id: idPorCedula.get(registro.cedula)!, deporte_id: deportesMap.get(nombre.toLowerCase())! })),
-  );
-  if (deportesDeportistas.length) {
-    const { error: errorDeportes } = await supabase.from("deportista_deportes").upsert(deportesDeportistas, { ignoreDuplicates: true });
-    if (errorDeportes) throw errorDeportes;
-  }
   if (opciones.grupoId) {
     if (opciones.esSeleccion) {
       const membresias = registros.map((registro) => ({ seleccion_id: opciones.grupoId!, deportista_id: idPorCedula.get(registro.cedula)! }));

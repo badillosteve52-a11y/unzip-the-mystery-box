@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, CalendarRange, ChevronDown, Dumbbell, Flag, LogOut, Medal, ShieldCheck, Shirt, Trophy } from "lucide-react";
+import { BarChart3, Building2, CalendarRange, ChevronDown, Flag, LogOut, Medal, ShieldCheck, Shirt, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import {
@@ -32,7 +32,6 @@ const nav = [
   { to: "/deportistas-clubes", label: "Deportistas de clubes", corto: "Clubes", icon: Shirt },
   { to: "/selecciones", label: "Selecciones", corto: "Selecciones", icon: Flag },
   { to: "/clubes", label: "Clubes", corto: "Clubes", icon: Trophy },
-  { to: "/deportes", label: "Deportes", corto: "Deportes", icon: Dumbbell },
   { to: "/escenarios", label: "Escenarios", corto: "Escenarios", icon: Building2 },
   { to: "/periodos", label: "Períodos", corto: "Períodos", icon: CalendarRange },
   { to: "/accesos", label: "Accesos", corto: "Accesos", icon: ShieldCheck },

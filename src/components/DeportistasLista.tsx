@@ -7,21 +7,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Cargando, PageHeader } from "@/components/PageHeader";
 import { Filtro, unicos } from "@/components/Filtro";import { ImportExport } from "@/components/ImportExport";
 import { errMsg, useDatos, useRefrescar, type Deportista } from "@/lib/db";
-import { calcularEdad, normalizarFecha } from "@/lib/edad";
+import { calcularEdad } from "@/lib/edad";
 import { importarDeportistas } from "@/lib/importar-deportistas";
 import { filtrarDeportistas } from "@/lib/filtros";
-import { FACULTADES_Y_CARRERAS, LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
+import { LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
 
 export const REGIONES = ["Sierra", "Costa", "Amazonía", "Insular"] as const;
 const authRoute = getRouteApi("/_authenticated");
 
-type Edit = Partial<Deportista> & { deportes: Set<string>; grupoId?: string };
+type Edit = Partial<Deportista> & { grupoId?: string };
 
 type ParticipacionState = {
   deportistaId: string;
@@ -75,8 +74,13 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
   if (!data) return <Cargando />;
 
-  const depsDe = (id: string) =>
-    data.dd.filter((x) => x.deportista_id === id).map((x) => data.deportes.find((d) => d.id === x.deporte_id)?.nombre).filter(Boolean) as string[];
+  const depsDe = (id: string) => {
+    const ids = new Set([
+      ...data.clubMiembros.filter((m) => m.deportista_id === id).map((m) => data.clubes.find((g) => g.id === m.grupo_id)?.deporte_id),
+      ...data.selMiembros.filter((m) => m.deportista_id === id).map((m) => data.selecciones.find((g) => g.id === m.grupo_id)?.deporte_id),
+    ].filter((deporteId): deporteId is string => !!deporteId));
+    return [...ids].map((deporteId) => data.deportes.find((d) => d.id === deporteId)?.nombre).filter(Boolean) as string[];
+  };
   const gruposDe = (id: string) => ({
     sel: data.selMiembros.filter((m) => m.deportista_id === id).length,
     club: data.clubMiembros.filter((m) => m.deportista_id === id).length,
@@ -97,7 +101,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         facultad: facNorm,
         genero: edit.genero || null,
         region: edit.region || null,
-        tiene_discapacidad: esSel ? false : !!edit.tiene_discapacidad,
+        tiene_discapacidad: !!edit.tiene_discapacidad,
       };
       let id = edit.id;
       if (id) {
@@ -112,11 +116,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         const { error } = esSel
           ? await supabase.from("seleccion_miembros").insert({ seleccion_id: edit.grupoId, deportista_id: id! })
           : await supabase.from("club_miembros").insert({ club_id: edit.grupoId, deportista_id: id! });
-        if (error) throw error;
-      }
-      await supabase.from("deportista_deportes").delete().eq("deportista_id", id!);
-      if (edit.deportes.size) {
-        const { error } = await supabase.from("deportista_deportes").insert([...edit.deportes].map((d) => ({ deportista_id: id!, deporte_id: d })));
         if (error) throw error;
       }
       toast.success("Deportista guardado");
@@ -177,53 +176,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
     }
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  async function importar(rows: Record<string, any>[]) {
-    if (!data) return 0;
-    const deportesMap = new Map(data.deportes.map((d) => [d.nombre.toLowerCase(), d.id]));
-    const registros = rows
-      .map((r: { [k: string]: any } & { cedula?: any; nombres?: any; nombre?: any; apellidos?: any; apellido?: any; fechanacimiento?: any; fechadenacimiento?: any; carrera?: any; facultad?: any; deportes?: any; deporte?: any }) => {
-        const facNorm = normalizarFacultad(String(r.facultad ?? "").trim() || null);
-        const carNorm = normalizarCarrera(String(r.carrera ?? "").trim() || null, facNorm);
-        return {
-          cedula: String(r.cedula ?? "").trim(),
-          nombres: String(r.nombres ?? r.nombre ?? "").trim(),
-          apellidos: String(r.apellidos ?? r.apellido ?? "").trim(),
-          fecha_nacimiento: normalizarFecha(r.fechanacimiento ?? r.fechadenacimiento),
-          carrera: carNorm,
-          facultad: facNorm,
-          genero: normGenero(r["genero"] ?? r["sexo"]),
-          region: normRegion(r["region"] ?? r["zona"]),
-          ...(esSel ? {} : { tiene_discapacidad: normSiNo(r["discapacidad"] ?? r["tienediscapacidad"]) }),
-          _deps: String(r.deportes ?? r.deporte ?? "").split(/[,;]/).map((s) => s.trim()).filter(Boolean),
-        };
-      })
-      .filter((r) => r.cedula && r.nombres);
-    if (!registros.length) throw new Error("No se encontraron filas con Cédula y Nombres");
-
-    const nuevos = [...new Set(registros.flatMap((r) => r._deps))].filter((n) => !deportesMap.has(n.toLowerCase()));
-    if (nuevos.length) {
-      const { data: ins, error } = await supabase.from("deportes").insert(nuevos.map((nombre) => ({ nombre }))).select();
-      if (error) throw error;
-      ins.forEach((d) => deportesMap.set(d.nombre.toLowerCase(), d.id));
-    }
-    const { data: guardados, error } = await supabase
-      .from("deportistas")
-      .upsert(registros.map(({ _deps, ...r }) => r), { onConflict: "cedula" })
-      .select("id, cedula");
-    if (error) throw error;
-    const idPorCed = new Map(guardados.map((g) => [g.cedula, g.id]));
-    const vinc = registros.flatMap((r) =>
-      r._deps.map((n) => ({ deportista_id: idPorCed.get(r.cedula)!, deporte_id: deportesMap.get(n.toLowerCase())! })),
-    );
-    if (vinc.length) {
-      const { error: e2 } = await supabase.from("deportista_deportes").upsert(vinc, { ignoreDuplicates: true });
-      if (e2) throw e2;
-    }
-    refrescar();
-    return registros.length;
-  }
-
   const deportistaSeleccionado = data.deportistas.find((d) => d.id === participacion?.deportistaId);
 
   return (
@@ -235,7 +187,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         {role === "admin" && <ImportExport
           nombre={esSel ? "deportistas-selecciones" : "deportistas-clubes"}
           ayuda="Excel de clubes: Nombres y apellidos (nombres primero), fecha nacimiento, cédula, género, región, facultad y una marca en Nivelación/PAO 1–9. La edad se calcula desde la fecha."
-          onImport={(rows) => data ? importarDeportistas(rows, { esSeleccion: esSel, deportes: data.deportes }).then((cantidad) => { refrescar(); return cantidad; }) : Promise.resolve(0)}
+          onImport={(rows) => data ? importarDeportistas(rows, { esSeleccion: esSel }).then((cantidad) => { refrescar(); return cantidad; }) : Promise.resolve(0)}
           filas={() =>
             lista.map((d) => ({
               Cedula: d.cedula,
@@ -248,7 +200,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
               Facultad: d.facultad ?? "",
               Genero: d.genero ?? "",
               Region: d.region ?? "",
-              ...(esSel ? {} : { Discapacidad: d.tiene_discapacidad ? "Sí" : "No" }),
+              Discapacidad: d.tiene_discapacidad ? "Sí" : "No",
               Deportes: depsDe(d.id).join(", "),
             }))
           }
@@ -256,7 +208,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         <Button variant="outline" onClick={() => setParticipacion({ deportistaId: lista[0]?.id ?? "", tipo, grupoId: "" })}>
           <UserPlus className="mr-2 h-4 w-4" /> Registrar participación
         </Button>
-        <Button onClick={() => setEdit({ deportes: new Set() })}>
+        <Button onClick={() => setEdit({})}>
           <Plus className="mr-2 h-4 w-4" /> Nuevo deportista
         </Button>
       </PageHeader>
@@ -307,7 +259,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <TableCell className="font-medium">
                     {d.apellidos} {d.nombres}
                     {d.es_ejemplo && <Badge variant="secondary" className="ml-2">ejemplo</Badge>}
-                    {!esSel && d.tiene_discapacidad && <Badge variant="outline" className="ml-2">discapacidad</Badge>}
+                    {d.tiene_discapacidad && <Badge variant="outline" className="ml-2">discapacidad</Badge>}
                   </TableCell>
                   <TableCell>{calcularEdad(d.fecha_nacimiento) ?? "—"}</TableCell>
                   <TableCell>
@@ -335,7 +287,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                         variant="ghost"
                         title="Editar deportista"
                         aria-label="Editar"
-                        onClick={() => setEdit({ ...d, deportes: new Set(data.dd.filter((x) => x.deportista_id === d.id).map((x) => x.deporte_id)) })}
+                        onClick={() => setEdit({ ...d })}
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
@@ -416,19 +368,17 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                 </select>
               </div>
 
-              {!esSel && (
-                <div className="space-y-1.5">
-                  <Label>¿Tiene discapacidad?</Label>
-                  <select
-                    className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
-                    value={edit.tiene_discapacidad ? "si" : "no"}
-                    onChange={(e) => setEdit({ ...edit, tiene_discapacidad: e.target.value === "si" })}
-                  >
-                    <option value="no">No</option>
-                    <option value="si">Sí</option>
-                  </select>
-                </div>
-              )}
+              <div className="space-y-1.5">
+                <Label>¿Tiene discapacidad?</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
+                  value={edit.tiene_discapacidad ? "si" : "no"}
+                  onChange={(e) => setEdit({ ...edit, tiene_discapacidad: e.target.value === "si" })}
+                >
+                  <option value="no">No</option>
+                  <option value="si">Sí</option>
+                </select>
+              </div>
 
 
               {/* Selector de Facultad */}
@@ -473,26 +423,20 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                 </select>
               </div>
 
+              <div className="space-y-1.5">
+                <Label>Nivel / PAO actual</Label>
+                <select
+                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
+                  value={edit.pao ?? ""}
+                  onChange={(e) => setEdit({ ...edit, pao: e.target.value || null })}
+                >
+                  <option value="">— Seleccionar —</option>
+                  {["Nivelación", ...Array.from({ length: 9 }, (_, index) => `PAO ${index + 1}`)].map((pao) => <option key={pao} value={pao}>{pao}</option>)}
+                </select>
+              </div>
+
               <div className="text-sm text-muted-foreground sm:col-span-2">
                 Edad: <strong className="text-foreground">{calcularEdad(edit.fecha_nacimiento) ?? "—"}</strong> (se calcula automáticamente)
-              </div>
-              <div className="space-y-1.5 sm:col-span-2">
-                <Label>Deportes</Label>
-                <div className="flex flex-wrap gap-3 rounded-md border p-3">
-                  {data.deportes.map((d) => (
-                    <label key={d.id} className="flex items-center gap-2 text-sm cursor-pointer">
-                      <Checkbox
-                        checked={edit.deportes.has(d.id)}
-                        onCheckedChange={(v) => {
-                          const s = new Set(edit.deportes);
-                          if (v) s.add(d.id); else s.delete(d.id);
-                          setEdit({ ...edit, deportes: s });
-                        }}
-                      />
-                      {d.nombre}
-                    </label>
-                  ))}
-                </div>
               </div>
             </div>
           )}
@@ -591,27 +535,4 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
       </Dialog>
     </div>
   );
-}
-
-function normSiNo(v: unknown): boolean {
-  const s = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
-  return s === "si" || s === "sí" || s === "yes" || s === "1" || s === "true" || s === "x";
-}
-
-function normGenero(v: unknown): string | null {
-  const s = String(v ?? "").trim().toLowerCase();
-  if (!s) return null;
-  if (s.startsWith("f") || s === "mujer") return "Femenino";
-  if (s.startsWith("m") || s === "hombre") return "Masculino";
-  return "Otro";
-}
-
-export function normRegion(v: unknown): string | null {
-  const s = String(v ?? "").trim().toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-  if (!s) return null;
-  if (s.startsWith("sie")) return "Sierra";
-  if (s.startsWith("cos")) return "Costa";
-  if (s.startsWith("ama") || s.startsWith("orie")) return "Amazonía";
-  if (s.startsWith("ins") || s.includes("galap")) return "Insular";
-  return null;
 }

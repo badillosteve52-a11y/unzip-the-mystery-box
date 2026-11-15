@@ -120,6 +120,11 @@ async function copiarSeleccionesPeriodo(origenId: string, destinoId: string) {
   }
 }
 
+export async function copiarNominaPeriodo(origenId: string, destinoId: string) {
+  await copiarClubesPeriodo(origenId, destinoId);
+  await copiarSeleccionesPeriodo(origenId, destinoId);
+}
+
 function esPeriodoPosterior(destino: Record<string, unknown>, origen: Row) {
   const fechaDestino = Date.parse(String(destino["fecha_inicio"] ?? ""));
   const fechaOrigen = Date.parse(String(origen["fecha_inicio"] ?? ""));
@@ -205,8 +210,7 @@ export function SimpleCrud({
         const destino = resultado.data as unknown as Row;
         periodoGuardado = destino;
         if (guardarInactivo && periodoActual && esPeriodoPosterior(destino, periodoActual)) {
-          await copiarClubesPeriodo(periodoActual.id, destino.id);
-          await copiarSeleccionesPeriodo(periodoActual.id, destino.id);
+          await copiarNominaPeriodo(periodoActual.id, destino.id);
           seCopioNomina = true;
         }
 

@@ -100,12 +100,18 @@ function Panel() {
         total: miembros.filter((miembro) => miembro.grupo_id === grupo.id).length,
       }))
       .sort((a, b) => b.total - a.total || a.nombre.localeCompare(b.nombre));
+    const deportesPorDeportista = new Map<string, string>();
+    miembros.forEach((miembro) => {
+      const deporteId = grupos.find((grupo) => grupo.id === miembro.grupo_id)?.deporte_id;
+      const nombre = deporteId && (!f.deporte || deporteId === f.deporte) ? nombreDeporte.get(deporteId) : null;
+      if (nombre) deportesPorDeportista.set(`${miembro.deportista_id}:${deporteId}`, nombre);
+    });
 
     return {
       deportistas,
       grupos: gruposFiltrados,
       deportes: new Set(grupos.filter((grupo) => gruposConMiembros.has(grupo.id)).map((grupo) => grupo.deporte_id).filter(Boolean)).size,
-      porDeporte: contar(data.dd.filter((relacion) => idsDeportistas.has(relacion.deportista_id) && (!f.deporte || relacion.deporte_id === f.deporte)).map((relacion) => nombreDeporte.get(relacion.deporte_id))),
+      porDeporte: contar([...deportesPorDeportista.values()]),
       porFacultad: contar(deportistas.map((deportista) => deportista.facultad)),
       porRegion: contar(deportistas.map((deportista) => deportista.region ?? "Sin dato")),
       porGenero: contar(deportistas.map((deportista) => normGeneroPanel(deportista.genero)).filter((genero): genero is string => !!genero)),

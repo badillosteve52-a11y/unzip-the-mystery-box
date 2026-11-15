@@ -20,11 +20,14 @@ function Page() {
       singular="deporte"
       campos={[{ key: "nombre", label: "Nombre", required: true }]}
       filas={data.deportes}
-      extra={(r) => (
-        <span className="text-sm text-muted-foreground">
-          {data.dd.filter((x) => x.deporte_id === r.id).length} deportistas
-        </span>
-      )}
+      extra={(r) => {
+        const grupos = [
+          ...data.clubes.filter((g) => g.deporte_id === r.id).map((g) => ({ id: g.id, miembros: data.clubMiembros })),
+          ...data.selecciones.filter((g) => g.deporte_id === r.id).map((g) => ({ id: g.id, miembros: data.selMiembros })),
+        ];
+        const deportistas = new Set(grupos.flatMap((g) => g.miembros.filter((m) => m.grupo_id === g.id).map((m) => m.deportista_id)));
+        return <span className="text-sm text-muted-foreground">{deportistas.size} deportistas</span>;
+      }}
     />
   );
 }

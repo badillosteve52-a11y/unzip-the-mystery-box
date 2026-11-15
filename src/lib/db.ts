@@ -170,13 +170,12 @@ async function asegurarEscenarios(existentes: Tables<"escenarios">[]) {
 export type DatosCompletos = Awaited<ReturnType<typeof cargarTodo>>;
 
 async function cargarTodo() {
-  const [deportistas, deportesRaw, periodosRaw, escenariosRaw, dd, seleccionesRaw, selMiembros, clubesRaw, clubMiembros, entrenadores] =
+  const [deportistas, deportesRaw, periodosRaw, escenariosRaw, seleccionesRaw, selMiembros, clubesRaw, clubMiembros, entrenadores] =
     await Promise.all([
       all(supabase.from("deportistas").select("*").order("apellidos")),
       all(supabase.from("deportes").select("*").order("nombre")),
       all(supabase.from("periodos").select("*").order("nombre", { ascending: false })),
       all(supabase.from("escenarios").select("*").order("nombre")),
-      all(supabase.from("deportista_deportes").select("*")),
       all(supabase.from("selecciones").select("*").order("nombre")),
       all(supabase.from("seleccion_miembros").select("*")),
       all(supabase.from("clubes").select("*").order("nombre")),

@@ -12,7 +12,16 @@ export function filtrarDeportistas(data: DatosCompletos, f: Filtros) {
       ...data.clubMiembros.filter((m) => clu.has(m.grupo_id)).map((m) => m.deportista_id),
     ]);
   }
-  const conDeporte = f.deporte ? new Set(data.dd.filter((x) => x.deporte_id === f.deporte).map((x) => x.deportista_id)) : null;
+  const conDeporte = f.deporte
+    ? (() => {
+        const selecciones = new Set(data.selecciones.filter((g) => g.deporte_id === f.deporte).map((g) => g.id));
+        const clubes = new Set(data.clubes.filter((g) => g.deporte_id === f.deporte).map((g) => g.id));
+        return new Set([
+          ...data.selMiembros.filter((m) => selecciones.has(m.grupo_id)).map((m) => m.deportista_id),
+          ...data.clubMiembros.filter((m) => clubes.has(m.grupo_id)).map((m) => m.deportista_id),
+        ]);
+      })()
+    : null;
   const t = (f.q ?? "").toLowerCase().trim();
   return data.deportistas.filter(
     (d) =>
