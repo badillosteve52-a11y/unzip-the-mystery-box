@@ -1,7 +1,7 @@
 import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Download, Dumbbell, Flag, SearchX, Trash2, Users, UsersRound } from "lucide-react";
 import { toast } from "sonner";
@@ -40,6 +40,15 @@ function Panel() {
   const { data } = useDatos();
   const refrescar = useRefrescar();
   const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "" });
+  const periodoInicializado = useRef(false);
+
+  useEffect(() => {
+    if (!data || periodoInicializado.current) return;
+    const activo = data.periodos.find((p) => p.activo);
+    if (!activo) return;
+    periodoInicializado.current = true;
+    setF((actual) => ({ ...actual, periodo: activo.id }));
+  }, [data]);
   const [tipoVista, setTipoVista] = useState<"selecciones" | "clubes">("selecciones");
   const { data: resumenReservas = [] } = useQuery({
     queryKey: ["resumen-reservas-escenarios"],

@@ -1,6 +1,6 @@
 import { routeMeta } from "@/lib/route-meta";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Check, Copy, Save, ShieldCheck, UsersRound } from "lucide-react";
 import { toast } from "sonner";
@@ -124,15 +124,50 @@ function CuentaPermisos({ cuenta, grupos, esYo, ocupado, onCambiarRol }: { cuent
   const [selecciones, setSelecciones] = useState<string[]>([]);
   const [clubes, setClubes] = useState<string[]>([]);
   const [guardandoGrupos, setGuardandoGrupos] = useState(false);
-  useEffect(() => {
-    setSelecciones(asignados.filter((asignado) => asignado.tipo === "seleccion").map((asignado) => asignado.grupo_id));
-    setClubes(asignados.filter((asignado) => asignado.tipo === "club").map((asignado) => asignado.grupo_id));
-  }, [asignados]);
 
-  function alternar(tipo: "seleccion" | "club", id: string) {
+  const gruposUnicos = useMemo(() => {
+    const mapa = new Map<string, { tipo: "seleccion" | "club"; nombre: string; ids: string[] }>();
+    for (const g of grupos) {
+      const nombreNorm = g.nombre.trim();
+      const clave = `${g.tipo}:${nombreNorm.toLowerCase()}`;
+      const item = mapa.get(clave);
+      if (item) {
+        if (!item.ids.includes(g.grupo_id)) item.ids.push(g.grupo_id);
+      } else {
+        mapa.set(clave, { tipo: g.tipo, nombre: nombreNorm, ids: [g.grupo_id] });
+      }
+    }
+    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
+  }, [grupos]);
+
+  useEffect(() => {
+    const selAsignadas = new Set(asignados.filter((asignado) => asignado.tipo === "seleccion").map((asignado) => asignado.grupo_id));
+    const clubAsignados = new Set(asignados.filter((asignado) => asignado.tipo === "club").map((asignado) => asignado.grupo_id));
+
+    const nuevasSelecciones = gruposUnicos
+      .filter((g) => g.tipo === "seleccion" && g.ids.some((id) => selAsignadas.has(id)))
+      .flatMap((g) => g.ids);
+
+    const nuevosClubes = gruposUnicos
+      .filter((g) => g.tipo === "club" && g.ids.some((id) => clubAsignados.has(id)))
+      .flatMap((g) => g.ids);
+
+    setSelecciones(nuevasSelecciones);
+    setClubes(nuevosClubes);
+  }, [asignados, gruposUnicos]);
+
+  function alternar(tipo: "seleccion" | "club", ids: string[]) {
     const valores = tipo === "seleccion" ? selecciones : clubes;
     const actualizar = tipo === "seleccion" ? setSelecciones : setClubes;
-    actualizar(valores.includes(id) ? valores.filter((valor) => valor !== id) : [...valores, id]);
+    const conjunto = new Set(valores);
+    const estaMarcado = ids.some((id) => conjunto.has(id));
+
+    if (estaMarcado) {
+      ids.forEach((id) => conjunto.delete(id));
+    } else {
+      ids.forEach((id) => conjunto.add(id));
+    }
+    actualizar(Array.from(conjunto));
   }
 
   async function guardarGrupos() {
@@ -162,12 +197,28 @@ function CuentaPermisos({ cuenta, grupos, esYo, ocupado, onCambiarRol }: { cuent
       <p className="mb-2 text-xs text-muted-foreground">Autoriza solo los grupos que debe gestionar:</p>
       {isLoading ? <p className="text-xs text-muted-foreground">Cargando grupos…</p> : <>
         <div className="grid gap-2 sm:grid-cols-2">
-          {(["seleccion", "club"] as const).map((tipo) => <fieldset key={tipo} className="space-y-1">
-            <legend className="mb-1 text-xs font-semibold">{tipo === "seleccion" ? "Selecciones" : "Clubes"}</legend>
-            {grupos.filter((grupo) => grupo.tipo === tipo).map((grupo) => <label key={grupo.grupo_id} className="flex items-center gap-2 text-xs">
-              <input type="checkbox" checked={(tipo === "seleccion" ? selecciones : clubes).includes(grupo.grupo_id)} onChange={() => alternar(tipo, grupo.grupo_id)} />{grupo.nombre}
-            </label>)}
-          </fieldset>)}
+          {(["seleccion", "club"] as const).map((tipo) => {
+            const gruposTipo = gruposUnicos.filter((grupo) => grupo.tipo === tipo);
+            const seleccionados = tipo === "seleccion" ? selecciones : clubes;
+            return (
+              <fieldset key={tipo} className="space-y-1">
+                <legend className="mb-1 text-xs font-semibold">{tipo === "seleccion" ? "Selecciones" : "Clubes"}</legend>
+                {gruposTipo.map((grupo) => {
+                  const marcado = grupo.ids.some((id) => seleccionados.includes(id));
+                  return (
+                    <label key={`${tipo}-${grupo.nombre}`} className="flex items-center gap-2 text-xs">
+                      <input
+                        type="checkbox"
+                        checked={marcado}
+                        onChange={() => alternar(tipo, grupo.ids)}
+                      />
+                      {grupo.nombre}
+                    </label>
+                  );
+                })}
+              </fieldset>
+            );
+          })}
         </div>
         <Button size="sm" variant="outline" className="mt-3" disabled={guardandoGrupos || ocupado} onClick={() => void guardarGrupos()}><Save className="mr-2 h-4 w-4" />Guardar grupos</Button>
       </>}

@@ -32,7 +32,15 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const periodosRevisados = useRef(new Set<string>());
 
   const activo = data.periodos.find((p) => p.activo)?.id ?? "";
-  const [periodo, setPeriodo] = useState("");
+  const [periodo, setPeriodo] = useState(activo);
+  const periodoInicializado = useRef(Boolean(activo));
+
+  useEffect(() => {
+    if (!periodoInicializado.current && activo) {
+      periodoInicializado.current = true;
+      setPeriodo(activo);
+    }
+  }, [activo]);
   const [copiandoPeriodo, setCopiandoPeriodo] = useState(false);
   const [deporte, setDeporte] = useState("");
   const [edit, setEdit] = useState<(Partial<Grupo> & { ids: Set<string> }) | null>(null);
@@ -138,7 +146,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
 
   async function cambiarPeriodo(nuevoPeriodoId: string) {
     setPeriodo(nuevoPeriodoId);
-    if (!esAdmin || !nuevoPeriodoId || copiandoPeriodo) return;
+    if (!esAdmin || !nuevoPeriodoId || nuevoPeriodoId !== activo || copiandoPeriodo) return;
     if (!data.periodos.some((p) => p.id === nuevoPeriodoId)) return;
 
     setCopiandoPeriodo(true);

@@ -120,7 +120,8 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
   async function cambiarPeriodo(periodoId: string) {
     setF((actual) => ({ ...actual, periodo: periodoId }));
-    if (role !== "admin" || !periodoId || copiandoPeriodo) return;
+    const activo = data.periodos.find((periodo) => periodo.activo)?.id;
+    if (role !== "admin" || !periodoId || periodoId !== activo || copiandoPeriodo) return;
     setCopiandoPeriodo(true);
     try {
       const origenes = await asegurarCopiaNominaPeriodo(data.periodos, periodoId);
