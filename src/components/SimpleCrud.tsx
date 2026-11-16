@@ -120,24 +120,85 @@ async function copiarSeleccionesPeriodo(origenId: string, destinoId: string) {
   }
 }
 
-export async function copiarNominaPeriodo(origenId: string, destinoId: string) {
-  await copiarClubesPeriodo(origenId, destinoId);
-  await copiarSeleccionesPeriodo(origenId, destinoId);
-}
+type PeriodoNomina = { id: string; nombre?: unknown; fecha_inicio?: unknown; created_at?: unknown };
 
-function esPeriodoPosterior(destino: Record<string, unknown>, origen: Row) {
-  const fechaDestino = Date.parse(String(destino["fecha_inicio"] ?? ""));
-  const fechaOrigen = Date.parse(String(origen["fecha_inicio"] ?? ""));
-  if (Number.isFinite(fechaDestino) && Number.isFinite(fechaOrigen) && fechaDestino !== fechaOrigen) {
-    return fechaDestino > fechaOrigen;
+function fechaPeriodoNomina(periodo: PeriodoNomina) {
+  const fecha = Date.parse(String(periodo.fecha_inicio ?? ""));
+  if (Number.isFinite(fecha)) return fecha;
+
+  const nombre = String(periodo.nombre ?? "").toLocaleLowerCase();
+  const anio = nombre.match(/\b(19|20)\d{2}\b/);
+  if (anio) {
+    const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
+    const mes = meses.findIndex((nombreMes) => nombre.includes(nombreMes));
+    if (mes >= 0) return Date.UTC(Number(anio[0]), mes, 1);
+    const periodoNumerado = nombre.match(/(?:19|20)\d{2}\s*[-/]\s*([12])\b/);
+    if (periodoNumerado) return Date.UTC(Number(anio[0]), periodoNumerado[1] === "1" ? 2 : 8, 1);
+    return Date.UTC(Number(anio[0]), 0, 1);
   }
-  const creadoDestino = Date.parse(String(destino["created_at"] ?? ""));
-  const creadoOrigen = Date.parse(String(origen["created_at"] ?? ""));
-  if (Number.isFinite(creadoDestino) && Number.isFinite(creadoOrigen)) return creadoDestino > creadoOrigen;
-  return !destino["id"];
+
+  const creado = Date.parse(String(periodo.created_at ?? ""));
+  return Number.isFinite(creado) ? creado : Number.NEGATIVE_INFINITY;
 }
 
+/** Fills empty club/selection catalogs for a term from the nearest earlier term that has data. */
+export async function asegurarCopiaNominaPeriodo(periodos: PeriodoNomina[], destinoId: string) {
+  const destino = periodos.find((periodo) => periodo.id === destinoId);
+  if (!destino) return [];
 
+  const [clubesResult, seleccionesResult, miembrosClubResult, miembrosSeleccionResult] = await Promise.all([
+    supabase.from("clubes").select("id,periodo_id"),
+    supabase.from("selecciones").select("id,periodo_id"),
+    supabase.from("club_miembros").select("club_id"),
+    supabase.from("seleccion_miembros").select("seleccion_id"),
+  ]);
+  if (clubesResult.error) throw clubesResult.error;
+  if (seleccionesResult.error) throw seleccionesResult.error;
+  if (miembrosClubResult.error) throw miembrosClubResult.error;
+  if (miembrosSeleccionResult.error) throw miembrosSeleccionResult.error;
+
+  const clubes = clubesResult.data ?? [];
+  const selecciones = seleccionesResult.data ?? [];
+  const miembrosClub = miembrosClubResult.data ?? [];
+  const miembrosSeleccion = miembrosSeleccionResult.data ?? [];
+  const periodosClubConMiembros = new Set(miembrosClub.flatMap((miembro) => {
+    const periodoId = clubes.find((grupo) => grupo.id === miembro.club_id)?.periodo_id;
+    return periodoId ? [periodoId] : [];
+  }));
+  const periodosSeleccionConMiembros = new Set(miembrosSeleccion.flatMap((miembro) => {
+    const periodoId = selecciones.find((grupo) => grupo.id === miembro.seleccion_id)?.periodo_id;
+    return periodoId ? [periodoId] : [];
+  }));
+  const clubesDestino = new Set(clubes.filter((grupo) => grupo.periodo_id === destinoId).map((grupo) => grupo.id));
+  const seleccionesDestino = new Set(selecciones.filter((grupo) => grupo.periodo_id === destinoId).map((grupo) => grupo.id));
+  const tieneMiembrosClubDestino = miembrosClub.some((miembro) => clubesDestino.has(miembro.club_id));
+  const tieneMiembrosSeleccionDestino = miembrosSeleccion.some((miembro) => seleccionesDestino.has(miembro.seleccion_id));
+  const fechaDestino = fechaPeriodoNomina(destino);
+  const anteriores = periodos
+    .filter((periodo) => periodo.id !== destinoId && fechaPeriodoNomina(periodo) < fechaDestino)
+    .sort((a, b) => fechaPeriodoNomina(b) - fechaPeriodoNomina(a));
+  const origenesCopiados: string[] = [];
+
+  if (!clubesDestino.size || !tieneMiembrosClubDestino) {
+    const origen = anteriores.find((periodo) => periodosClubConMiembros.has(periodo.id))
+      ?? anteriores.find((periodo) => clubes.some((grupo) => grupo.periodo_id === periodo.id));
+    if (origen) {
+      await copiarClubesPeriodo(origen.id, destinoId);
+      origenesCopiados.push(String(origen.nombre ?? "período anterior"));
+    }
+  }
+
+  if (!seleccionesDestino.size || !tieneMiembrosSeleccionDestino) {
+    const origen = anteriores.find((periodo) => periodosSeleccionConMiembros.has(periodo.id))
+      ?? anteriores.find((periodo) => selecciones.some((grupo) => grupo.periodo_id === periodo.id));
+    if (origen) {
+      await copiarSeleccionesPeriodo(origen.id, destinoId);
+      origenesCopiados.push(String(origen.nombre ?? "período anterior"));
+    }
+  }
+
+  return [...new Set(origenesCopiados)];
+}
 
 export function SimpleCrud({
   tabla,
@@ -209,10 +270,8 @@ export function SimpleCrud({
 
         const destino = resultado.data as unknown as Row;
         periodoGuardado = destino;
-        if (guardarInactivo && periodoActual && esPeriodoPosterior(destino, periodoActual)) {
-          await copiarNominaPeriodo(periodoActual.id, destino.id);
-          seCopioNomina = true;
-        }
+        const periodosNomina = [...filas.filter((fila) => fila.id !== destino.id), destino];
+        seCopioNomina = (await asegurarCopiaNominaPeriodo(periodosNomina, destino.id)).length > 0;
 
         if (activar) {
           const { error: errorDesactivar } = await supabase
@@ -239,7 +298,7 @@ export function SimpleCrud({
         if (error) throw error;
       }
 
-      toast.success(seCopioNomina ? "Período activado; se copiaron clubes, selecciones e integrantes del período anterior" : "Guardado");
+      toast.success(seCopioNomina ? "Se copiaron clubes, selecciones e integrantes del período anterior" : "Guardado");
       setEdit(null);
       refrescar();
     } catch (e) {

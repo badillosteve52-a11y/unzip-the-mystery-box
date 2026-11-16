@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { PageHeader } from "./PageHeader";
 import { Filtro } from "./Filtro";
 import { ImportExport } from "./ImportExport";
-import { copiarNominaPeriodo } from "./SimpleCrud";
+import { asegurarCopiaNominaPeriodo } from "./SimpleCrud";
 import { errMsg, useRefrescar, type DatosCompletos, type Grupo } from "@/lib/db";
 import { calcularEdad } from "@/lib/edad"; import { importarDeportistas } from "@/lib/importar-deportistas";
 import { LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
@@ -123,27 +123,14 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
   async function cambiarPeriodo(nuevoPeriodoId: string) {
     setPeriodo(nuevoPeriodoId);
     if (!esAdmin || !nuevoPeriodoId || copiandoPeriodo) return;
-    const destino = data.periodos.find((p) => p.id === nuevoPeriodoId);
-    const periodoActivo = data.periodos.find((p) => p.id === activo);
-    if (!destino || grupos.some((g) => g.periodo_id === nuevoPeriodoId)) return;
-
-    const fechaPeriodo = (p: (typeof data.periodos)[number]) => {
-      const inicio = Date.parse(p.fecha_inicio ?? "");
-      return Number.isFinite(inicio) ? inicio : Date.parse(p.created_at);
-    };
-    const inicioDestino = fechaPeriodo(destino);
-    if (!Number.isFinite(inicioDestino)) return;
-    if (periodoActivo && periodoActivo.id !== destino.id && fechaPeriodo(destino) < fechaPeriodo(periodoActivo)) return;
-    const origen = data.periodos
-      .filter((p) => p.id !== destino.id && fechaPeriodo(p) < inicioDestino && grupos.some((g) => g.periodo_id === p.id))
-      .sort((a, b) => fechaPeriodo(b) - fechaPeriodo(a))[0];
-    if (!origen) return;
+    if (!data.periodos.some((p) => p.id === nuevoPeriodoId)) return;
 
     setCopiandoPeriodo(true);
     try {
-      await copiarNominaPeriodo(origen.id, destino.id);
+      const origenes = await asegurarCopiaNominaPeriodo(data.periodos, nuevoPeriodoId);
+      if (!origenes.length) return;
       await refrescar();
-      toast.success(`Se copiaron clubes, selecciones e integrantes desde ${origen.nombre}`);
+      toast.success(`Se heredaron los datos de los períodos anteriores: ${origenes.join(", ")}`);
     } catch (error) {
       toast.error(`No se pudo copiar la nómina del período anterior: ${errMsg(error)}`);
     } finally {

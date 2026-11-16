@@ -16,7 +16,7 @@ function Page() {
     <SimpleCrud
       tabla="periodos"
       titulo="Períodos académicos"
-      subtitulo="Los períodos anteriores se conservan como historial. Al activar un período posterior, sus clubes y selecciones heredan la nómina del período activo anterior."
+      subtitulo="Cada período conserva su historial. Los períodos nuevos o vacíos heredan clubes, selecciones e integrantes del período anterior con datos."
       singular="período"
       campos={[
         { key: "nombre", label: "Nombre", required: true },

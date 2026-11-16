@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
-import { Pencil, Plus, Search, Trash2, UserPlus, Flag, UsersRound } from "lucide-react";
+import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,7 @@ import { errMsg, useDatos, useRefrescar, type Deportista } from "@/lib/db";
 import { calcularEdad } from "@/lib/edad";
 import { importarDeportistas } from "@/lib/importar-deportistas";
 import { filtrarDeportistas } from "@/lib/filtros";
+import { asegurarCopiaNominaPeriodo } from "./SimpleCrud";
 import { LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
 
 export const REGIONES = ["Sierra", "Costa", "Amazonía", "Insular"] as const;
@@ -22,20 +23,14 @@ const authRoute = getRouteApi("/_authenticated");
 
 type Edit = Partial<Deportista> & { grupoId?: string };
 
-type ParticipacionState = {
-  deportistaId: string;
-  tipo: "CLUB" | "SELECCION";
-  grupoId: string;
-};
-
 export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
   const { role } = authRoute.useRouteContext();
   const esSel = tipo === "SELECCION";
   const { data } = useDatos();
   const refrescar = useRefrescar();
   const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "", q: "" });
+  const [copiandoPeriodo, setCopiandoPeriodo] = useState(false);
   const [edit, setEdit] = useState<Edit | null>(null);
-  const [participacion, setParticipacion] = useState<ParticipacionState | null>(null);
 
   const lista = useMemo(() => {
     if (!data) return [];
@@ -86,6 +81,22 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
     club: data.clubMiembros.filter((m) => m.deportista_id === id).length,
   });
 
+  async function cambiarPeriodo(periodoId: string) {
+    setF((actual) => ({ ...actual, periodo: periodoId }));
+    if (role !== "admin" || !periodoId || copiandoPeriodo) return;
+    setCopiandoPeriodo(true);
+    try {
+      const origenes = await asegurarCopiaNominaPeriodo(data.periodos, periodoId);
+      if (!origenes.length) return;
+      await refrescar();
+      toast.success(`Se heredaron los datos de los períodos anteriores: ${origenes.join(", ")}`);
+    } catch (error) {
+      toast.error(`No se pudo copiar la nómina del período anterior: ${errMsg(error)}`);
+    } finally {
+      setCopiandoPeriodo(false);
+    }
+  }
+
   async function guardar() {
     if (!edit) return;
     try {
@@ -134,50 +145,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
     else refrescar();
   }
 
-  async function guardarParticipacion() {
-    if (!participacion?.deportistaId || !participacion.grupoId) {
-      toast.error("Seleccione el deportista y el grupo correspondiente");
-      return;
-    }
-    try {
-      if (participacion.tipo === "SELECCION") {
-        const yaExiste = data!.selMiembros.some(
-          (m) => m.grupo_id === participacion.grupoId && m.deportista_id === participacion.deportistaId
-        );
-        if (yaExiste) {
-          toast.error("El deportista ya está registrado en esta Selección");
-          return;
-        }
-        const { error } = await supabase.from("seleccion_miembros").insert({
-          seleccion_id: participacion.grupoId,
-          deportista_id: participacion.deportistaId,
-        });
-        if (error) throw error;
-        toast.success("Participación en Selección registrada correctamente");
-      } else {
-        const yaExiste = data!.clubMiembros.some(
-          (m) => m.grupo_id === participacion.grupoId && m.deportista_id === participacion.deportistaId
-        );
-        if (yaExiste) {
-          toast.error("El deportista ya está registrado en este Club");
-          return;
-        }
-        const { error } = await supabase.from("club_miembros").insert({
-          club_id: participacion.grupoId,
-          deportista_id: participacion.deportistaId,
-        });
-        if (error) throw error;
-        toast.success("Participación en Club registrada correctamente");
-      }
-      setParticipacion(null);
-      refrescar();
-    } catch (e) {
-      toast.error(errMsg(e));
-    }
-  }
-
-  const deportistaSeleccionado = data.deportistas.find((d) => d.id === participacion?.deportistaId);
-
   return (
     <div>
       <PageHeader
@@ -205,9 +172,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
             }))
           }
         />}
-        <Button variant="outline" onClick={() => setParticipacion({ deportistaId: lista[0]?.id ?? "", tipo, grupoId: "" })}>
-          <UserPlus className="mr-2 h-4 w-4" /> Registrar participación
-        </Button>
         <Button onClick={() => setEdit({})}>
           <Plus className="mr-2 h-4 w-4" /> Nuevo deportista
         </Button>
@@ -218,7 +182,8 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
           <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input placeholder="Buscar por nombre o cédula…" className="w-72 pl-8" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} />
         </div>
-        <Filtro label="Período" value={f.periodo} onChange={(v) => setF({ ...f, periodo: v })} opciones={data.periodos.map((p) => ({ value: p.id, label: p.nombre }))} />
+        <Filtro label="Período" value={f.periodo} onChange={(v) => void cambiarPeriodo(v)} opciones={data.periodos.map((p) => ({ value: p.id, label: p.nombre }))} />
+        {copiandoPeriodo && <span role="status" className="self-end pb-2 text-sm text-muted-foreground">Copiando nómina del período anterior…</span>}
         <Filtro label="Deporte" value={f.deporte} onChange={(v) => setF({ ...f, deporte: v })} opciones={data.deportes.map((p) => ({ value: p.id, label: p.nombre }))} />
         <Filtro
           label="Facultad"
@@ -273,15 +238,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <TableCell className="text-sm">{esSel ? g.sel : g.club}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        title="Registrar participación"
-                        aria-label="Registrar participación"
-                        onClick={() => setParticipacion({ deportistaId: d.id, tipo, grupoId: "" })}
-                      >
-                        <UserPlus className="h-4 w-4 text-primary" />
-                      </Button>
                       <Button
                         size="icon"
                         variant="ghost"
@@ -447,92 +403,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         </DialogContent>
       </Dialog>
 
-      {/* Dialog para Registrar Participación en Club o Selección */}
-      <Dialog open={!!participacion} onOpenChange={(o) => !o && setParticipacion(null)}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Registrar participación deportiva</DialogTitle>
-          </DialogHeader>
-          {participacion && (
-            <div className="space-y-4">
-              <div className="space-y-1.5">
-                <Label>Deportista</Label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm"
-                  value={participacion.deportistaId}
-                  onChange={(e) => setParticipacion({ ...participacion, deportistaId: e.target.value })}
-                >
-                  <option value="">— Seleccionar deportista —</option>
-                  {data.deportistas.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.apellidos} {d.nombres} ({d.cedula})
-                    </option>
-                  ))}
-                </select>
-                {deportistaSeleccionado && (
-                  <p className="text-xs text-muted-foreground">
-                    Carrera: {deportistaSeleccionado.carrera ?? "—"} | Facultad: {deportistaSeleccionado.facultad ?? "—"}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>Tipo de participación</Label>
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    type="button"
-                    variant={participacion.tipo === "SELECCION" ? "default" : "outline"}
-                    className="flex items-center gap-2 justify-center"
-                    onClick={() => setParticipacion({ ...participacion, tipo: "SELECCION", grupoId: "" })}
-                  >
-                    <Flag className="h-4 w-4" /> Selección
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={participacion.tipo === "CLUB" ? "default" : "outline"}
-                    className="flex items-center gap-2 justify-center"
-                    onClick={() => setParticipacion({ ...participacion, tipo: "CLUB", grupoId: "" })}
-                  >
-                    <UsersRound className="h-4 w-4" /> Club
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-1.5">
-                <Label>
-                  {participacion.tipo === "SELECCION" ? "Selección Deportiva" : "Club Deportivo"}
-                </Label>
-                <select
-                  className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm"
-                  value={participacion.grupoId}
-                  onChange={(e) => setParticipacion({ ...participacion, grupoId: e.target.value })}
-                >
-                  <option value="">
-                    {participacion.tipo === "SELECCION" ? "— Seleccionar Selección —" : "— Seleccionar Club —"}
-                  </option>
-                  {participacion.tipo === "SELECCION"
-                    ? data.selecciones.map((s) => (
-                        <option key={s.id} value={s.id}>
-                          {s.nombre}
-                        </option>
-                      ))
-                    : data.clubes.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.nombre}
-                        </option>
-                      ))}
-                </select>
-              </div>
-            </div>
-          )}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setParticipacion(null)}>Cancelar</Button>
-            <Button onClick={guardarParticipacion} disabled={!participacion?.deportistaId || !participacion?.grupoId}>
-              Guardar participación
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
