@@ -44,21 +44,21 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
   useEffect(() => {
     if (!data || role !== "admin") return;
-    const periodoActivo = data.periodos.find((periodo) => periodo.activo);
-    if (!periodoActivo || periodosRevisados.current.has(periodoActivo.id)) return;
+    const periodoActual = f.periodo || data.periodos.find((periodo) => periodo.activo)?.id;
+    if (!periodoActual || periodosRevisados.current.has(periodoActual)) return;
 
-    periodosRevisados.current.add(periodoActivo.id);
-    void asegurarCopiaNominaPeriodo(data.periodos, periodoActivo.id)
+    periodosRevisados.current.add(periodoActual);
+    void asegurarCopiaNominaPeriodo(data.periodos, periodoActual)
       .then(async (origenes) => {
         if (!origenes.length) return;
         await refrescar();
         toast.success(`Se heredaron los datos de los períodos anteriores: ${origenes.join(", ")}`);
       })
       .catch((error) => {
-        periodosRevisados.current.delete(periodoActivo.id);
-        toast.error(`No se pudo cargar la nómina del período activo: ${errMsg(error)}`);
+        periodosRevisados.current.delete(periodoActual);
+        toast.error(`No se pudo cargar la nómina del período: ${errMsg(error)}`);
       });
-  }, [data, role, refrescar]);
+  }, [data, role, f.periodo, refrescar]);
 
   const lista = useMemo(() => {
     if (!data) return [];
@@ -120,8 +120,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
   async function cambiarPeriodo(periodoId: string) {
     setF((actual) => ({ ...actual, periodo: periodoId }));
-    const activo = data.periodos.find((periodo) => periodo.activo)?.id;
-    if (role !== "admin" || !periodoId || periodoId !== activo || copiandoPeriodo) return;
+    if (role !== "admin" || !periodoId || copiandoPeriodo) return;
     setCopiandoPeriodo(true);
     try {
       const origenes = await asegurarCopiaNominaPeriodo(data.periodos, periodoId);

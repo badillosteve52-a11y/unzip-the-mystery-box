@@ -53,19 +53,20 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const [quitandoEntrenador, setQuitandoEntrenador] = useState(false);
 
   useEffect(() => {
-    if (!esAdmin || !activo || periodosRevisados.current.has(activo)) return;
-    periodosRevisados.current.add(activo);
-    void asegurarCopiaNominaPeriodo(data.periodos, activo)
+    const periodoActual = periodo || activo;
+    if (!esAdmin || !periodoActual || periodosRevisados.current.has(periodoActual)) return;
+    periodosRevisados.current.add(periodoActual);
+    void asegurarCopiaNominaPeriodo(data.periodos, periodoActual)
       .then(async (origenes) => {
         if (!origenes.length) return;
         await refrescar();
         toast.success(`Se heredaron los datos de los períodos anteriores: ${origenes.join(", ")}`);
       })
       .catch((error) => {
-        periodosRevisados.current.delete(activo);
-        toast.error(`No se pudo cargar la nómina del período activo: ${errMsg(error)}`);
+        periodosRevisados.current.delete(periodoActual);
+        toast.error(`No se pudo cargar la nómina del período: ${errMsg(error)}`);
       });
-  }, [esAdmin, activo, data.periodos, refrescar]);
+  }, [esAdmin, periodo, activo, data.periodos, refrescar]);
   const [subiendoCertificado, setSubiendoCertificado] = useState<string | null>(null);
   const [descargandoGrupo, setDescargandoGrupo] = useState<string | null>(null);
 
@@ -146,7 +147,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
 
   async function cambiarPeriodo(nuevoPeriodoId: string) {
     setPeriodo(nuevoPeriodoId);
-    if (!esAdmin || !nuevoPeriodoId || nuevoPeriodoId !== activo || copiandoPeriodo) return;
+    if (!esAdmin || !nuevoPeriodoId || copiandoPeriodo) return;
     if (!data.periodos.some((p) => p.id === nuevoPeriodoId)) return;
 
     setCopiandoPeriodo(true);

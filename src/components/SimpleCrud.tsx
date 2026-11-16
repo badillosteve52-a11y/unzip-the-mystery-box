@@ -32,11 +32,10 @@ function claveGrupo(nombre: string, deporteId: string | null) {
   return JSON.stringify([nombre.trim().toLocaleLowerCase(), deporteId]);
 }
 
-async function copiarClubesPeriodo(origenId: string, destinoId: string) {
-  const { data: origenes, error: errorOrigen } = await supabase
-    .from("clubes")
-    .select("id,nombre,deporte_id")
-    .eq("periodo_id", origenId);
+async function copiarClubesPeriodo(origenId: string | null, destinoId: string) {
+  let query = supabase.from("clubes").select("id,nombre,deporte_id");
+  query = origenId ? query.eq("periodo_id", origenId) : query.is("periodo_id", null);
+  const { data: origenes, error: errorOrigen } = await query;
   if (errorOrigen) throw errorOrigen;
   if (!origenes?.length) return;
 
@@ -76,11 +75,10 @@ async function copiarClubesPeriodo(origenId: string, destinoId: string) {
   }
 }
 
-async function copiarSeleccionesPeriodo(origenId: string, destinoId: string) {
-  const { data: origenes, error: errorOrigen } = await supabase
-    .from("selecciones")
-    .select("id,nombre,deporte_id")
-    .eq("periodo_id", origenId);
+async function copiarSeleccionesPeriodo(origenId: string | null, destinoId: string) {
+  let query = supabase.from("selecciones").select("id,nombre,deporte_id");
+  query = origenId ? query.eq("periodo_id", origenId) : query.is("periodo_id", null);
+  const { data: origenes, error: errorOrigen } = await query;
   if (errorOrigen) throw errorOrigen;
   if (!origenes?.length) return;
 
@@ -181,7 +179,10 @@ export async function asegurarCopiaNominaPeriodo(periodos: PeriodoNomina[], dest
 
   if (!clubesDestino.size || !tieneMiembrosClubDestino) {
     const origen = anteriores.find((periodo) => periodosClubConMiembros.has(periodo.id))
-      ?? anteriores.find((periodo) => clubes.some((grupo) => grupo.periodo_id === periodo.id));
+      ?? anteriores.find((periodo) => clubes.some((grupo) => grupo.periodo_id === periodo.id))
+      ?? periodos.find((periodo) => periodo.id !== destinoId && periodosClubConMiembros.has(periodo.id))
+      ?? periodos.find((periodo) => periodo.id !== destinoId && clubes.some((grupo) => grupo.periodo_id === periodo.id))
+      ?? (clubes.some((grupo) => !grupo.periodo_id) ? { id: null, nombre: "catálogo inicial" } : null);
     if (origen) {
       await copiarClubesPeriodo(origen.id, destinoId);
       origenesCopiados.push(String(origen.nombre ?? "período anterior"));
@@ -190,7 +191,10 @@ export async function asegurarCopiaNominaPeriodo(periodos: PeriodoNomina[], dest
 
   if (!seleccionesDestino.size || !tieneMiembrosSeleccionDestino) {
     const origen = anteriores.find((periodo) => periodosSeleccionConMiembros.has(periodo.id))
-      ?? anteriores.find((periodo) => selecciones.some((grupo) => grupo.periodo_id === periodo.id));
+      ?? anteriores.find((periodo) => selecciones.some((grupo) => grupo.periodo_id === periodo.id))
+      ?? periodos.find((periodo) => periodo.id !== destinoId && periodosSeleccionConMiembros.has(periodo.id))
+      ?? periodos.find((periodo) => periodo.id !== destinoId && selecciones.some((grupo) => grupo.periodo_id === periodo.id))
+      ?? (selecciones.some((grupo) => !grupo.periodo_id) ? { id: null, nombre: "catálogo inicial" } : null);
     if (origen) {
       await copiarSeleccionesPeriodo(origen.id, destinoId);
       origenesCopiados.push(String(origen.nombre ?? "período anterior"));
