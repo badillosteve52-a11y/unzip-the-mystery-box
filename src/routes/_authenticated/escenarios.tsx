@@ -33,6 +33,7 @@ const CATEGORIAS = [
 const FOTO_ESCENARIOS = {
   piscina: "/escenarios/piscina.png",
   estadio: "/escenarios/estadio-pista.png",
+  pista: "/escenarios/pista-atletica.jpg",
   coliseo: "/escenarios/coliseo-basquet.png",
   gimnasio: "/escenarios/gimnasio.png",
   tenis: "/escenarios/tenis-campo.png",
@@ -51,7 +52,10 @@ function fotoEscenario(nombre: string, tipo: string | null) {
   if (texto.includes("vóley playa") || texto.includes("voley playa")) return { src: FOTO_ESCENARIOS.voleyPlaya, alt: "Cancha de vóley playa" };
   if (texto.includes("ecuavóley de tierra") || texto.includes("ecuavoley de tierra") || texto.includes("vóley de tierra") || texto.includes("voley de tierra")) return { src: FOTO_ESCENARIOS.voleyTierra, alt: "Cancha de vóley de tierra" };
   if (texto.includes("piscina")) return { src: FOTO_ESCENARIOS.piscina, alt: "Piscina cubierta" };
-  if (texto.includes("estadio") || texto.includes("pista")) return { src: FOTO_ESCENARIOS.estadio, alt: "Estadio y pista deportiva" };
+  if (texto.includes("pista") || texto.includes("running") || texto.includes("atlética") || texto.includes("atletica")) {
+    return { src: FOTO_ESCENARIOS.pista, alt: "Pista atlética" };
+  }
+  if (texto.includes("estadio")) return { src: FOTO_ESCENARIOS.estadio, alt: "Estadio deportivo" };
   if (texto.includes("coliseo")) return { src: FOTO_ESCENARIOS.coliseo, alt: "Cancha cubierta del coliseo" };
   if (texto.includes("gimnasio")) return { src: FOTO_ESCENARIOS.gimnasio, alt: "Gimnasio institucional" };
   if (texto.includes("tenis de mesa")) return { src: FOTO_ESCENARIOS.tenisMesa, alt: "Sala con mesas de tenis de mesa" };
