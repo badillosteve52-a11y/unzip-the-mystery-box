@@ -32,6 +32,15 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
   const [copiandoPeriodo, setCopiandoPeriodo] = useState(false);
   const [edit, setEdit] = useState<Edit | null>(null);
   const periodosRevisados = useRef(new Set<string>());
+  const periodoInicializado = useRef(false);
+
+  useEffect(() => {
+    if (!data || periodoInicializado.current) return;
+    const activo = data.periodos.find((periodo) => periodo.activo);
+    if (!activo) return;
+    periodoInicializado.current = true;
+    setF((actual) => ({ ...actual, periodo: activo.id }));
+  }, [data]);
 
   useEffect(() => {
     if (!data || role !== "admin") return;
@@ -53,9 +62,16 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
   const lista = useMemo(() => {
     if (!data) return [];
-    const propios = new Set((esSel ? data.selMiembros : data.clubMiembros).map((m) => m.deportista_id));
-    const conGrupo = new Set([...data.selMiembros, ...data.clubMiembros].map((m) => m.deportista_id));
-    // Se muestran los del módulo y los que aún no tienen ningún grupo (para no perderlos)
+    const idsEnPeriodo = (grupos: typeof data.selecciones) => new Set(
+      grupos.filter((grupo) => !f.periodo || grupo.periodo_id === f.periodo).map((grupo) => grupo.id),
+    );
+    const seleccionesPeriodo = idsEnPeriodo(data.selecciones);
+    const clubesPeriodo = idsEnPeriodo(data.clubes);
+    const relacionesSeleccion = data.selMiembros.filter((m) => seleccionesPeriodo.has(m.grupo_id));
+    const relacionesClub = data.clubMiembros.filter((m) => clubesPeriodo.has(m.grupo_id));
+    const propios = new Set((esSel ? relacionesSeleccion : relacionesClub).map((m) => m.deportista_id));
+    const conGrupo = new Set([...relacionesSeleccion, ...relacionesClub].map((m) => m.deportista_id));
+    // Se muestran los del módulo y los que aún no tienen ningún grupo en este período.
     return filtrarDeportistas(data, f).filter((d) => propios.has(d.id) || !conGrupo.has(d.id));
   }, [data, f, esSel]);
 
@@ -88,16 +104,18 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
 
   if (!data) return <Cargando />;
 
+  const idsSeleccionesPeriodo = new Set(data.selecciones.filter((grupo) => !f.periodo || grupo.periodo_id === f.periodo).map((grupo) => grupo.id));
+  const idsClubesPeriodo = new Set(data.clubes.filter((grupo) => !f.periodo || grupo.periodo_id === f.periodo).map((grupo) => grupo.id));
   const depsDe = (id: string) => {
     const ids = new Set([
-      ...data.clubMiembros.filter((m) => m.deportista_id === id).map((m) => data.clubes.find((g) => g.id === m.grupo_id)?.deporte_id),
-      ...data.selMiembros.filter((m) => m.deportista_id === id).map((m) => data.selecciones.find((g) => g.id === m.grupo_id)?.deporte_id),
+      ...data.clubMiembros.filter((m) => m.deportista_id === id && idsClubesPeriodo.has(m.grupo_id)).map((m) => data.clubes.find((g) => g.id === m.grupo_id)?.deporte_id),
+      ...data.selMiembros.filter((m) => m.deportista_id === id && idsSeleccionesPeriodo.has(m.grupo_id)).map((m) => data.selecciones.find((g) => g.id === m.grupo_id)?.deporte_id),
     ].filter((deporteId): deporteId is string => !!deporteId));
     return [...ids].map((deporteId) => data.deportes.find((d) => d.id === deporteId)?.nombre).filter(Boolean) as string[];
   };
   const gruposDe = (id: string) => ({
-    sel: data.selMiembros.filter((m) => m.deportista_id === id).length,
-    club: data.clubMiembros.filter((m) => m.deportista_id === id).length,
+    sel: data.selMiembros.filter((m) => m.deportista_id === id && idsSeleccionesPeriodo.has(m.grupo_id)).length,
+    club: data.clubMiembros.filter((m) => m.deportista_id === id && idsClubesPeriodo.has(m.grupo_id)).length,
   });
 
   async function cambiarPeriodo(periodoId: string) {
