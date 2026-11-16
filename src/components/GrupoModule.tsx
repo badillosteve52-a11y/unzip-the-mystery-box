@@ -213,7 +213,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
         facultad: normalizarFacultad(nuevoEstudiante.facultad || null),
         carrera: normalizarCarrera(nuevoEstudiante.carrera || null, normalizarFacultad(nuevoEstudiante.facultad || null)),
         pao: nuevoEstudiante.pao || null,
-        tiene_discapacidad: nuevoEstudiante.tiene_discapacidad,
+        tiene_discapacidad: esSel ? false : nuevoEstudiante.tiene_discapacidad,
       });
       if (errorDeportista) throw errorDeportista;
       const { error: errorMembresia } = esSel
@@ -222,10 +222,10 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
       if (errorMembresia) throw errorMembresia;
       setNuevoEstudiante(null);
       await refrescar();
-      toast.success(`Estudiante registrado en la ${singular}`);
+      toast.success(`Estudiante registrado en ${esSel ? "la selección" : "el club"}`);
     } catch (error) {
       const mensaje = errMsg(error);
-      toast.error(mensaje.includes("duplicate") ? `Ya existe un deportista con esa cédula. Usa «Vincular existente» para agregarlo a la ${singular}.` : mensaje);
+      toast.error(mensaje.includes("duplicate") ? `Ya existe un deportista con esa cédula. Usa «Vincular existente» para agregarlo a ${esSel ? "la selección" : "el club"}.` : mensaje);
     } finally {
       setGuardandoEstudiante(false);
     }
@@ -377,7 +377,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
       <Dialog open={!!nuevoEstudiante} onOpenChange={(open) => !open && setNuevoEstudiante(null)}>
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
-            <DialogTitle>Registrar estudiante en la {singular}</DialogTitle>
+            <DialogTitle>Registrar estudiante en {esSel ? "la selección" : "el club"}</DialogTitle>
             <p className="text-sm text-muted-foreground">{grupos.find((g) => g.id === nuevoEstudiante?.grupoId)?.nombre}</p>
           </DialogHeader>
           <form className="space-y-4" onSubmit={(event) => { event.preventDefault(); void guardarEstudiante(); }}>
@@ -390,9 +390,9 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-nombres">Nombres</Label><Input id="nuevo-club-nombres" required value={nuevoEstudiante?.nombres ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, nombres: event.target.value })} /></div>
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-apellidos">Apellidos</Label><Input id="nuevo-club-apellidos" required value={nuevoEstudiante?.apellidos ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, apellidos: event.target.value })} /></div>
             </div>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className={`grid gap-4 ${esSel ? "" : "sm:grid-cols-2"}`}>
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-region">Región de procedencia</Label><select id="nuevo-club-region" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.region ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, region: event.target.value })}><option value="">— Seleccionar —</option>{["Sierra", "Costa", "Amazonía", "Insular"].map((region) => <option key={region} value={region}>{region}</option>)}</select></div>
-              <div className="space-y-1.5"><Label htmlFor="nuevo-club-discapacidad">¿Tiene discapacidad?</Label><select id="nuevo-club-discapacidad" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.tiene_discapacidad ? "si" : "no"} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, tiene_discapacidad: event.target.value === "si" })}><option value="no">No</option><option value="si">Sí</option></select></div>
+              {!esSel && <div className="space-y-1.5"><Label htmlFor="nuevo-club-discapacidad">¿Tiene discapacidad?</Label><select id="nuevo-club-discapacidad" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.tiene_discapacidad ? "si" : "no"} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, tiene_discapacidad: event.target.value === "si" })}><option value="no">No</option><option value="si">Sí</option></select></div>}
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-facultad">Facultad</Label><select id="nuevo-club-facultad" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.facultad ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, facultad: event.target.value, carrera: "" })}><option value="">— Seleccionar —</option>{LISTA_FACULTADES.map((facultad) => <option key={facultad} value={facultad}>{facultad}</option>)}</select></div>
@@ -402,14 +402,14 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-pao">Nivel / PAO actual</Label><select id="nuevo-club-pao" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.pao ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, pao: event.target.value })}><option value="">— Seleccionar —</option>{["Nivelación", ...Array.from({ length: 9 }, (_, index) => `PAO ${index + 1}`)].map((pao) => <option key={pao} value={pao}>{pao}</option>)}</select></div>
               <p className="pb-2 text-sm text-muted-foreground">Edad: <strong className="text-foreground">{calcularEdad(nuevoEstudiante?.fecha_nacimiento) ?? "—"}</strong> (se calcula automáticamente)</p>
             </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setNuevoEstudiante(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : `Registrar en la ${singular}`}</Button></DialogFooter>
+            <DialogFooter><Button type="button" variant="outline" onClick={() => setNuevoEstudiante(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : `Registrar en ${esSel ? "la selección" : "el club"}`}</Button></DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
 
       <Dialog open={!!edit} onOpenChange={(o) => !o && setEdit(null)}>
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
-          <DialogHeader><DialogTitle>{edit?.id ? "Editar" : "Nueva"} {singular}</DialogTitle></DialogHeader>
+          <DialogHeader><DialogTitle>{edit?.id ? "Editar" : esSel ? "Nueva" : "Nuevo"} {singular}</DialogTitle></DialogHeader>
           {edit && (
             <div className="space-y-3">
               <div className="space-y-1.5">
