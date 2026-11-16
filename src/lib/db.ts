@@ -223,7 +223,6 @@ async function cargarTodo() {
     entrenadores,
     periodos,
     escenarios,
-    dd,
     selecciones,
     selMiembros: selMiembros.map((m) => ({ grupo_id: m.seleccion_id, deportista_id: m.deportista_id })),
     clubes,
