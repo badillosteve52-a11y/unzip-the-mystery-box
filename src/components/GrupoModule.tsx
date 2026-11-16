@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
-import { Download, FileUp, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
+import { Check, Download, FileUp, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -67,8 +68,11 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
         toast.error(`No se pudo cargar la nómina del período: ${errMsg(error)}`);
       });
   }, [esAdmin, periodo, activo, data.periodos, refrescar]);
+  const qc = useQueryClient();
   const [subiendoCertificado, setSubiendoCertificado] = useState<string | null>(null);
   const [descargandoGrupo, setDescargandoGrupo] = useState<string | null>(null);
+  const [descargandoIndividual, setDescargandoIndividual] = useState<string | null>(null);
+  const [archivoCertificado, setArchivoCertificado] = useState<File | null>(null);
 
   async function subirCertificado(seleccionId: string, deportistaId: string, file: File | undefined) {
     if (!file) return;
@@ -77,26 +81,66 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
     setSubiendoCertificado(deportistaId);
     const { error } = await supabase.storage.from("certificados-matricula").upload(`${seleccionId}/${deportistaId}.pdf`, file, { upsert: true, contentType: "application/pdf" });
     setSubiendoCertificado(null);
-    if (error) toast.error(errMsg(error)); else toast.success("Certificado de matrícula guardado");
+    if (error) {
+      toast.error(errMsg(error));
+    } else {
+      toast.success("Certificado de matrícula guardado");
+      await qc.invalidateQueries({ queryKey: ["certificados-selecciones"] });
+    }
   }
 
-  async function descargarCertificados(seleccionId: string, seleccionNombre: string) {
+  async function descargarCertificadoIndividual(seleccionId: string, seleccionNombre: string, deportista: (typeof data.deportistas)[number] | undefined) {
+    if (!deportista) return;
+    setDescargandoIndividual(deportista.id);
+    try {
+      const { data: blob, error } = await supabase.storage.from("certificados-matricula").download(`${seleccionId}/${deportista.id}.pdf`);
+      if (error) {
+        toast.error(`No se pudo descargar el certificado de ${deportista.nombres} ${deportista.apellidos}: ${errMsg(error)}`);
+        return;
+      }
+      if (!blob) {
+        toast.info("El archivo del certificado está vacío o no se encontró.");
+        return;
+      }
+      const nombre = `${deportista.apellidos}_${deportista.nombres}`.trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Certificado_${seleccionNombre}_${nombre}.pdf`;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      toast.success(`Certificado de ${deportista.nombres} ${deportista.apellidos} descargado`);
+    } catch (e) {
+      toast.error(errMsg(e));
+    } finally {
+      setDescargandoIndividual(null);
+    }
+  }
+
+  async function descargarCertificados(seleccionId: string, seleccionNombre: string, miembrosActuales?: { deportista_id: string }[]) {
     setDescargandoGrupo(seleccionId);
     const { data: files, error } = await supabase.storage.from("certificados-matricula").list(seleccionId);
     if (error) { setDescargandoGrupo(null); toast.error(errMsg(error)); return; }
-    const pdfs = (files ?? []).filter((file) => file.name.toLowerCase().endsWith(".pdf"));
-    if (!pdfs.length) { setDescargandoGrupo(null); toast.info("Esta selección todavía no tiene certificados cargados"); return; }
+    const idsMiembros = miembrosActuales ? new Set(miembrosActuales.map((m) => m.deportista_id)) : null;
+    const pdfs = (files ?? []).filter((file) => {
+      if (!file.name.toLowerCase().endsWith(".pdf")) return false;
+      const depId = file.name.replace(/\.pdf$/i, "");
+      return !idsMiembros || idsMiembros.has(depId);
+    });
+    if (!pdfs.length) { setDescargandoGrupo(null); toast.info("No hay certificados cargados para los integrantes de esta selección"); return; }
     let fallidos = 0;
+    let descargados = 0;
     for (const file of pdfs) {
       const { data: blob, error: downloadError } = await supabase.storage.from("certificados-matricula").download(`${seleccionId}/${file.name}`);
       if (downloadError || !blob) { fallidos += 1; continue; }
       const deportista = porId.get(file.name.replace(/\.pdf$/i, ""));
       const nombre = `${deportista?.apellidos ?? "deportista"}_${deportista?.nombres ?? ""}`.trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `${seleccionNombre}_${nombre}.pdf`; link.click();
-      setTimeout(() => URL.revokeObjectURL(link.href), 1000); await new Promise((resolve) => setTimeout(resolve, 250));
+      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Certificado_${seleccionNombre}_${nombre}.pdf`; link.click();
+      descargados += 1;
+      setTimeout(() => URL.revokeObjectURL(link.href), 1000); await new Promise((resolve) => setTimeout(resolve, 300));
     }
     setDescargandoGrupo(null);
-    toast.success(fallidos ? `Descargados ${pdfs.length - fallidos}; fallaron ${fallidos}` : `Descargados ${pdfs.length} certificados`);
+    toast.success(fallidos ? `Descargados ${descargados}; fallaron ${fallidos}` : `Descargados ${descargados} certificado(s)`);
   }
 
 
@@ -144,6 +188,24 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
   const vistos = grupos.filter(
     (g) => (!periodo || g.periodo_id === periodo || !g.periodo_id) && (!deporte || g.deporte_id === deporte)
   );
+
+  const idsSeleccionesVisibles = useMemo(() => (esSel ? vistos.map((v) => v.id).sort().join(",") : ""), [esSel, vistos]);
+  const { data: certificadosPorSeleccion = {} } = useQuery({
+    queryKey: ["certificados-selecciones", idsSeleccionesVisibles],
+    enabled: esSel && vistos.length > 0,
+    queryFn: async () => {
+      const mapa: Record<string, string[]> = {};
+      await Promise.all(
+        vistos.map(async (g) => {
+          const { data: files } = await supabase.storage.from("certificados-matricula").list(g.id);
+          mapa[g.id] = (files ?? [])
+            .filter((f) => f.name.toLowerCase().endsWith(".pdf"))
+            .map((f) => f.name.replace(/\.pdf$/i, ""));
+        })
+      );
+      return mapa;
+    },
+  });
 
   async function cambiarPeriodo(nuevoPeriodoId: string) {
     setPeriodo(nuevoPeriodoId);
@@ -221,6 +283,16 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
         ? await supabase.from("seleccion_miembros").insert({ seleccion_id: nuevoEstudiante.grupoId, deportista_id: deportistaId })
         : await supabase.from("club_miembros").insert({ club_id: nuevoEstudiante.grupoId, deportista_id: deportistaId });
       if (errorMembresia) throw errorMembresia;
+
+      if (esSel && archivoCertificado) {
+        const { error: errorCert } = await supabase.storage.from("certificados-matricula").upload(`${nuevoEstudiante.grupoId}/${deportistaId}.pdf`, archivoCertificado, { upsert: true, contentType: "application/pdf" });
+        if (errorCert) {
+          toast.error(`Estudiante registrado, pero no se pudo guardar el certificado: ${errMsg(errorCert)}`);
+        } else {
+          await qc.invalidateQueries({ queryKey: ["certificados-selecciones"] });
+        }
+      }
+      setArchivoCertificado(null);
       setNuevoEstudiante(null);
       await refrescar();
       toast.success(`Estudiante registrado en ${esSel ? "la selección" : "el club"}`);
@@ -315,21 +387,68 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                 </Button>
               </div>
               {!esSel && esAdmin && <div className="mt-3"><ImportExport nombre={`${g.nombre}-integrantes`} filas={() => []} onImport={(rows) => importarEnGrupo(g.id, rows)} ocultarExportar textoImportar="Importar Excel a este club" ayuda="Columnas aceptadas: Nombres y apellidos (nombres primero), fecha nacimiento, edad, cédula, género, región, facultad y Nivelación/PAO 1–9. Marca un solo PAO actual; se guarda en la ficha. La edad se calcula desde la fecha." /></div>}
-<ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
-                {ms.map((m) => {
-                  const d = porId.get(m.deportista_id);
-                  return <li key={m.deportista_id} className="flex items-center justify-between gap-2">
-                    <span className="min-w-0 truncate">{d?.apellidos} {d?.nombres}</span>
-                    {esSel && <label className="inline-flex shrink-0 cursor-pointer items-center gap-1 rounded-md border px-2 py-1 text-xs hover:bg-muted" title="Subir certificado de matrícula en PDF">
-                      <FileUp className="h-3.5 w-3.5" /><span>{subiendoCertificado === m.deportista_id ? "Subiendo…" : "PDF"}</span>
-                      <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(g.id, m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
-                    </label>}
-                  </li>;
-                })}
-              </ul>
-              {esSel && esAdmin && <Button className="mt-3 w-full" size="sm" variant="outline" onClick={() => void descargarCertificados(g.id, g.nombre)} disabled={descargandoGrupo === g.id}>
-                <Download className="mr-2 h-4 w-4" />{descargandoGrupo === g.id ? "Descargando…" : "Descargar certificados PDF"}
-              </Button>}
+                <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
+                  {ms.map((m) => {
+                    const d = porId.get(m.deportista_id);
+                    const certsDeEsteGrupo = certificadosPorSeleccion[g.id] ?? [];
+                    const tieneCertificado = certsDeEsteGrupo.includes(m.deportista_id);
+                    return <li key={m.deportista_id} className="flex flex-wrap items-center justify-between gap-2 rounded-md px-1.5 py-1 hover:bg-muted/40">
+                      <span className="min-w-0 truncate font-medium">{d?.apellidos} {d?.nombres}</span>
+                      {esSel && <div className="flex shrink-0 items-center gap-1.5">
+                        {tieneCertificado ? (
+                          <>
+                            <span className="inline-flex items-center gap-0.5 rounded bg-emerald-500/10 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700 dark:text-emerald-400">
+                              <Check className="h-3 w-3" /> PDF
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-6 px-1.5 text-xs text-primary hover:text-primary"
+                              title={`Descargar certificado de ${d?.nombres ?? ""} ${d?.apellidos ?? ""}`}
+                              disabled={descargandoIndividual === m.deportista_id}
+                              onClick={() => void descargarCertificadoIndividual(g.id, g.nombre, d)}
+                            >
+                              <Download className="mr-1 h-3 w-3" />
+                              {descargandoIndividual === m.deportista_id ? "…" : "Descargar"}
+                            </Button>
+                            <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted" title="Reemplazar certificado en PDF">
+                              <FileUp className="h-3 w-3" /><span>{subiendoCertificado === m.deportista_id ? "…" : "Cambiar"}</span>
+                              <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(g.id, m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
+                            </label>
+                          </>
+                        ) : (
+                          <>
+                            <span className="text-[11px] text-muted-foreground">Sin PDF</span>
+                            <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/5" title="Subir certificado de matrícula en PDF">
+                              <FileUp className="h-3 w-3" /><span>{subiendoCertificado === m.deportista_id ? "Subiendo…" : "Subir PDF"}</span>
+                              <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(g.id, m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
+                            </label>
+                          </>
+                        )}
+                      </div>}
+                    </li>;
+                  })}
+                </ul>
+                {esSel && esAdmin && (() => {
+                  const certsDeEsteGrupo = certificadosPorSeleccion[g.id] ?? [];
+                  const miembrosConCertificado = ms.filter((m) => certsDeEsteGrupo.includes(m.deportista_id)).length;
+                  return (
+                    <Button
+                      className="mt-3 w-full"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void descargarCertificados(g.id, g.nombre, ms)}
+                      disabled={descargandoGrupo === g.id || miembrosConCertificado === 0}
+                    >
+                      <Download className="mr-2 h-4 w-4" />
+                      {descargandoGrupo === g.id
+                        ? "Descargando…"
+                        : miembrosConCertificado > 0
+                        ? `Descargar todos los certificados (${miembrosConCertificado} de ${ms.length})`
+                        : `Sin certificados cargados (0 de ${ms.length})`}
+                    </Button>
+                  );
+                })()}
               <div className="mt-4 space-y-2 border-t pt-3">
                 {data.entrenadores.filter((e) => esSel ? e.seleccion_id === g.id : e.club_id === g.id).map((e) => (
                   <div key={e.id} className="flex items-center justify-between gap-2 text-sm">
@@ -375,7 +494,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
         </AlertDialogContent>
       </AlertDialog>
 
-      <Dialog open={!!nuevoEstudiante} onOpenChange={(open) => !open && setNuevoEstudiante(null)}>
+      <Dialog open={!!nuevoEstudiante} onOpenChange={(open) => { if (!open) { setNuevoEstudiante(null); setArchivoCertificado(null); } }}>
         <DialogContent className="max-h-[90dvh] w-[calc(100%-2rem)] overflow-y-auto sm:max-w-lg">
           <DialogHeader>
             <DialogTitle>Registrar estudiante en {esSel ? "la selección" : "el club"}</DialogTitle>
@@ -403,7 +522,22 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
               <div className="space-y-1.5"><Label htmlFor="nuevo-club-pao">Nivel / PAO actual</Label><select id="nuevo-club-pao" className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm" value={nuevoEstudiante?.pao ?? ""} onChange={(event) => nuevoEstudiante && setNuevoEstudiante({ ...nuevoEstudiante, pao: event.target.value })}><option value="">— Seleccionar —</option>{["Nivelación", ...Array.from({ length: 9 }, (_, index) => `PAO ${index + 1}`)].map((pao) => <option key={pao} value={pao}>{pao}</option>)}</select></div>
               <p className="pb-2 text-sm text-muted-foreground">Edad: <strong className="text-foreground">{calcularEdad(nuevoEstudiante?.fecha_nacimiento) ?? "—"}</strong> (se calcula automáticamente)</p>
             </div>
-            <DialogFooter><Button type="button" variant="outline" onClick={() => setNuevoEstudiante(null)}>Cancelar</Button><Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : `Registrar en ${esSel ? "la selección" : "el club"}`}</Button></DialogFooter>
+            {esSel && (
+              <div className="space-y-1.5 border-t pt-3">
+                <Label htmlFor="nuevo-certificado">Certificado de matrícula en PDF <span className="font-normal text-muted-foreground">(opcional)</span></Label>
+                <Input
+                  id="nuevo-certificado"
+                  type="file"
+                  accept="application/pdf,.pdf"
+                  className="h-10 text-xs file:mr-2 file:rounded file:border-0 file:bg-primary file:px-2 file:py-1 file:text-xs file:text-primary-foreground hover:file:bg-primary/90"
+                  onChange={(e) => setArchivoCertificado(e.target.files?.[0] ?? null)}
+                />
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="outline" onClick={() => { setNuevoEstudiante(null); setArchivoCertificado(null); }}>Cancelar</Button>
+              <Button type="submit" disabled={guardandoEstudiante}>{guardandoEstudiante ? "Guardando…" : `Registrar en ${esSel ? "la selección" : "el club"}`}</Button>
+            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
