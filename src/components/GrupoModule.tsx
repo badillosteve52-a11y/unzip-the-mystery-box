@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Download, FileUp, Pencil, Plus, Trash2, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
@@ -29,6 +29,7 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const grupos = esSel ? data.selecciones : data.clubes;
   const miembros = esSel ? data.selMiembros : data.clubMiembros;
   const refrescar = useRefrescar();
+  const periodosRevisados = useRef(new Set<string>());
 
   const activo = data.periodos.find((p) => p.activo)?.id ?? "";
   const [periodo, setPeriodo] = useState("");
@@ -42,6 +43,21 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const [guardandoEntrenador, setGuardandoEntrenador] = useState(false);
   const [entrenadorAQuitar, setEntrenadorAQuitar] = useState<{ id: string; nombre: string; grupoId: string } | null>(null);
   const [quitandoEntrenador, setQuitandoEntrenador] = useState(false);
+
+  useEffect(() => {
+    if (!esAdmin || !activo || periodosRevisados.current.has(activo)) return;
+    periodosRevisados.current.add(activo);
+    void asegurarCopiaNominaPeriodo(data.periodos, activo)
+      .then(async (origenes) => {
+        if (!origenes.length) return;
+        await refrescar();
+        toast.success(`Se heredaron los datos de los períodos anteriores: ${origenes.join(", ")}`);
+      })
+      .catch((error) => {
+        periodosRevisados.current.delete(activo);
+        toast.error(`No se pudo cargar la nómina del período activo: ${errMsg(error)}`);
+      });
+  }, [esAdmin, activo, data.periodos, refrescar]);
   const [subiendoCertificado, setSubiendoCertificado] = useState<string | null>(null);
   const [descargandoGrupo, setDescargandoGrupo] = useState<string | null>(null);
 

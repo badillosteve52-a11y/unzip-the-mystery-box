@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { getRouteApi } from "@tanstack/react-router";
 import { Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { toast } from "sonner";
@@ -31,6 +31,25 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
   const [f, setF] = useState({ periodo: "", deporte: "", facultad: "", carrera: "", region: "", q: "" });
   const [copiandoPeriodo, setCopiandoPeriodo] = useState(false);
   const [edit, setEdit] = useState<Edit | null>(null);
+  const periodosRevisados = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (!data || role !== "admin") return;
+    const periodoActivo = data.periodos.find((periodo) => periodo.activo);
+    if (!periodoActivo || periodosRevisados.current.has(periodoActivo.id)) return;
+
+    periodosRevisados.current.add(periodoActivo.id);
+    void asegurarCopiaNominaPeriodo(data.periodos, periodoActivo.id)
+      .then(async (origenes) => {
+        if (!origenes.length) return;
+        await refrescar();
+        toast.success(`Se heredaron los datos de los períodos anteriores: ${origenes.join(", ")}`);
+      })
+      .catch((error) => {
+        periodosRevisados.current.delete(periodoActivo.id);
+        toast.error(`No se pudo cargar la nómina del período activo: ${errMsg(error)}`);
+      });
+  }, [data, role, refrescar]);
 
   const lista = useMemo(() => {
     if (!data) return [];
