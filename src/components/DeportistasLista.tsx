@@ -180,7 +180,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
               Facultad: d.facultad ?? "",
               Genero: d.genero ?? "",
               Region: d.region ?? "",
-              Discapacidad: d.tiene_discapacidad ? "Sí" : "No",
+              ...(!esSel ? { Discapacidad: d.tiene_discapacidad ? "Sí" : "No" } : {}),
               Deportes: depsDe(d.id).join(", "),
             }))
           }
@@ -237,7 +237,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <TableCell className="font-medium">
                     {d.apellidos} {d.nombres}
                     {d.es_ejemplo && <Badge variant="secondary" className="ml-2">ejemplo</Badge>}
-                    {d.tiene_discapacidad && <Badge variant="outline" className="ml-2">discapacidad</Badge>}
+                    {!esSel && d.tiene_discapacidad && <Badge variant="outline" className="ml-2">discapacidad</Badge>}
                   </TableCell>
                   <TableCell>{calcularEdad(d.fecha_nacimiento) ?? "—"}</TableCell>
                   <TableCell>
@@ -323,8 +323,8 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <option value="Otro">Otro</option>
                 </select>
               </div>
-
-              <div className="space-y-1.5">
+              {!esSel && (
+                <div className="space-y-1.5">
                 <Label>¿Tiene discapacidad?</Label>
                 <select
                   className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
@@ -334,7 +334,8 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   <option value="no">No</option>
                   <option value="si">Sí</option>
                 </select>
-              </div>
+                </div>
+              )}
 
 
               {/* Selector de Facultad */}
