@@ -21,7 +21,7 @@ import { LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizar
 export const REGIONES = ["Sierra", "Costa", "Amazonía", "Insular"] as const;
 const authRoute = getRouteApi("/_authenticated");
 
-type Edit = Partial<Deportista> & { grupoId?: string };
+type Edit = Partial<Deportista>;
 
 export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
   const { role } = authRoute.useRouteContext();
@@ -141,12 +141,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
         const { data: n, error } = await supabase.from("deportistas").insert(datos).select("id").single();
         if (error) throw error;
         id = n.id;
-      }
-      if (!edit.id && edit.grupoId) {
-        const { error } = esSel
-          ? await supabase.from("seleccion_miembros").insert({ seleccion_id: edit.grupoId, deportista_id: id! })
-          : await supabase.from("club_miembros").insert({ club_id: edit.grupoId, deportista_id: id! });
-        if (error) throw error;
       }
       toast.success("Deportista guardado");
       setEdit(null);
@@ -316,19 +310,6 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
                   {REGIONES.map((r) => <option key={r} value={r}>{r}</option>)}
                 </select>
               </div>
-              {!edit.id && (
-                <div className="space-y-1.5 sm:col-span-2">
-                  <Label>{esSel ? "Selección" : "Club"}</Label>
-                  <select
-                    className="flex h-9 w-full rounded-md border border-input bg-card px-3 py-1 text-sm shadow-sm"
-                    value={edit.grupoId ?? ""}
-                    onChange={(e) => setEdit({ ...edit, grupoId: e.target.value })}
-                  >
-                    <option value="">— Seleccionar —</option>
-                    {(esSel ? data.selecciones : data.clubes).map((g) => <option key={g.id} value={g.id}>{g.nombre}</option>)}
-                  </select>
-                </div>
-              )}
               <div className="space-y-1.5">
                 <Label>Género</Label>
                 <select
@@ -417,7 +398,7 @@ export function DeportistasLista({ tipo }: { tipo: "SELECCION" | "CLUB" }) {
           )}
           <DialogFooter>
             <Button variant="outline" onClick={() => setEdit(null)}>Cancelar</Button>
-            <Button onClick={guardar} disabled={!edit?.cedula || !edit?.nombres || !edit?.apellidos || (!edit?.id && !edit?.grupoId)}>Guardar</Button>
+            <Button onClick={guardar} disabled={!edit?.cedula || !edit?.nombres || !edit?.apellidos}>Guardar</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
