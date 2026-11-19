@@ -38,7 +38,7 @@ const nav = [
 ] as const;
 
 function NavLista({ activo, onNavigate, role }: { activo: string; onNavigate?: () => void; role: string | null }) {
-  const accesosPersonal = new Set(["/panel", "/deportistas-selecciones", "/deportistas-clubes", "/selecciones", "/clubes"]);
+  const accesosPersonal = new Set(["/panel", "/deportistas-selecciones", "/deportistas-clubes", "/selecciones", "/clubes", "/escenarios"]);
   const enlaces = role === "admin" ? nav : nav.filter((item) => role === "gestor_grupos" && accesosPersonal.has(item.to));
   return (
     <nav aria-label="Secciones" className="flex flex-col gap-1.5">
@@ -103,7 +103,7 @@ function Layout() {
   const pathname = useRouterState({ select: (s) => s.location.pathname ?? "" });
   const [abierto, setAbierto] = useState(false);
 
-  const accesosPersonal = new Set(["/panel", "/deportistas-selecciones", "/deportistas-clubes", "/selecciones", "/clubes"]);
+  const accesosPersonal = new Set(["/panel", "/deportistas-selecciones", "/deportistas-clubes", "/selecciones", "/clubes", "/escenarios"]);
   const enlaces = role === "admin" ? nav : nav.filter((item) => role === "gestor_grupos" && accesosPersonal.has(item.to));
   useEffect(() => {
     if (role === "gestor_grupos" && !accesosPersonal.has(pathname)) {

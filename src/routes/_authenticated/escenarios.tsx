@@ -71,6 +71,7 @@ function fotoEscenario(nombre: string, tipo: string | null) {
 }
 
 function Page() {
+  const { role } = Route.useRouteContext();
   const { data } = useDatos();
   const [categoria, setCategoria] = useState<string>("todos");
 
@@ -126,10 +127,14 @@ function Page() {
     <div className="space-y-8">
       <header>
         <h1 className="text-2xl font-bold">Escenarios deportivos</h1>
-        <p className="mt-1 text-muted-foreground">Consulta el inventario y reserva un espacio en el mismo módulo.</p>
+        <p className="mt-1 text-muted-foreground">
+          {role === "admin"
+            ? "Consulta el inventario y reserva un espacio en el mismo módulo."
+            : "Consulta el inventario de escenarios deportivos."}
+        </p>
       </header>
 
-      <ReservasEscenarios escenarios={escenarios.map((e) => ({ id: e.id, nombre: e.nombre }))} />
+      {role === "admin" && <ReservasEscenarios escenarios={escenarios.map((e) => ({ id: e.id, nombre: e.nombre }))} />}
 
       <section className="space-y-5">
         <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-4">
