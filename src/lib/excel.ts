@@ -43,7 +43,7 @@ export async function exportarPDF(filas: Record<string, unknown>[], nombre: stri
       pagina.text("ESCUELA SUPERIOR POLITÉCNICA DE CHIMBORAZO", 38, 14);
       pagina.setFont("helvetica", "normal");
       pagina.setFontSize(9);
-      pagina.text("CENTRO DE EDUCACIÓN FÍSICA", 38, 20);
+      pagina.text("CENTRO DE DEPORTES ESPOCH", 38, 20);
       pagina.setDrawColor(27, 94, 32);
       pagina.setLineWidth(0.6);
       pagina.line(14, 29, ancho - 14, 29);
@@ -68,7 +68,7 @@ export async function exportarPDF(filas: Record<string, unknown>[], nombre: stri
     doc.setFont("helvetica", "normal");
     doc.setFontSize(8);
     doc.setTextColor(105, 115, 108);
-    doc.text("Centro de Educación Física · ESPOCH", 14, alto - 9);
+    doc.text("Centro de Deportes ESPOCH", 14, alto - 9);
     doc.text(`Página ${pagina} de ${totalPaginas}`, ancho - 14, alto - 9, { align: "right" });
   }
   // Forzar descarga: tipo genérico evita que el navegador abra el visor/impresión
