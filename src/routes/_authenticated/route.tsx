@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { createFileRoute, Link, Outlet, redirect, useNavigate, useRouterState } from "@tanstack/react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { BarChart3, Building2, CalendarRange, ChevronDown, Flag, LogOut, Medal, ShieldCheck, Shirt, Trophy } from "lucide-react";
+import { BarChart3, Building2, CalendarRange, ChevronDown, Flag, KeyRound, LogOut, Medal, ShieldCheck, Shirt, Trophy } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { CambiarContrasenaDialog } from "@/components/CambiarContrasenaDialog";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -77,9 +78,20 @@ function NavLista({ activo, onNavigate, role }: { activo: string; onNavigate?: (
 }
 
 function Pie({ email, onSalir, onNavigate }: { email: string; onSalir: () => void; onNavigate?: () => void }) {
+  const [cambiarContrasenaAbierto, setCambiarContrasenaAbierto] = useState(false);
+
   return (
     <div className="border-t border-sidebar-border p-3">
       <div className="truncate px-2 pb-2 text-xs opacity-70">{email}</div>
+      <button
+        onClick={() => setCambiarContrasenaAbierto(true)}
+        className="mb-1 flex w-full items-center gap-3 rounded-xl px-2.5 py-2 text-sm font-semibold text-sidebar-foreground/85 hover:bg-sidebar-accent/55 hover:text-sidebar-foreground"
+      >
+        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg border border-sidebar-border bg-sidebar/70">
+          <KeyRound className="h-5 w-5" />
+        </span>
+        Cambiar contraseña
+      </button>
       <button
         onClick={() => {
           onNavigate?.();
@@ -92,6 +104,7 @@ function Pie({ email, onSalir, onNavigate }: { email: string; onSalir: () => voi
         </span>
         Cerrar sesión
       </button>
+      <CambiarContrasenaDialog open={cambiarContrasenaAbierto} onOpenChange={setCambiarContrasenaAbierto} />
     </div>
   );
 }

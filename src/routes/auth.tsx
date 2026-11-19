@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -25,15 +25,68 @@ export const Route = createFileRoute("/auth")({
 
 function AuthPage() {
   const nav = useNavigate();
-  const [modo, setModo] = useState<"in" | "up">("in");
+  const [modo, setModo] = useState<"in" | "up" | "forgot" | "update">("in");
   const [email, setEmail] = useState("");
   const [pass, setPass] = useState("");
+  const [confirmacion, setConfirmacion] = useState("");
   const [cargando, setCargando] = useState(false);
+
+  useEffect(() => {
+    let activa = true;
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event === "PASSWORD_RECOVERY") setModo("update");
+    });
+
+    if (new URLSearchParams(window.location.search).get("mode") === "reset-password") {
+      void supabase.auth.getSession().then(({ data: sessionData, error }) => {
+        if (!activa) return;
+        if (error) {
+          toast.error(error.message);
+          setModo("in");
+          return;
+        }
+        if (!sessionData.session) {
+          toast.error("El enlace de recuperación venció o ya no es válido. Solicita uno nuevo.");
+          setModo("in");
+          return;
+        }
+        setModo("update");
+      });
+    }
+
+    return () => {
+      activa = false;
+      data.subscription.unsubscribe();
+    };
+  }, []);
 
   async function enviar(e: React.FormEvent) {
     e.preventDefault();
     setCargando(true);
     try {
+      if (modo === "forgot") {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+          redirectTo: `${window.location.origin}/auth?mode=reset-password`,
+        });
+        if (error) throw error;
+        toast.success("Si el correo está registrado, recibirás un enlace para recuperar la contraseña. Revisa también spam.");
+        setModo("in");
+        setPass("");
+        return;
+      }
+
+      if (modo === "update") {
+        if (pass !== confirmacion) {
+          toast.error("Las contraseñas no coinciden.");
+          return;
+        }
+        const { error } = await supabase.auth.updateUser({ password: pass });
+        if (error) throw error;
+        toast.success("Contraseña actualizada.");
+        nav({ to: "/panel", replace: true });
+        return;
+      }
+
       if (modo === "in") {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
         if (error) throw error;
@@ -70,27 +123,84 @@ function AuthPage() {
       <form onSubmit={enviar} className="w-full max-w-sm space-y-5 rounded-xl border bg-card p-8 shadow-sm">
         <img src={logoOscuro} alt="Logo ESPOCH" className="mx-auto h-14 w-auto" />
         <div>
-          <h1 className="text-2xl font-bold">{modo === "in" ? "Ingresar" : "Crear cuenta de coordinador"}</h1>
+          <h1 className="text-2xl font-bold">
+            {modo === "in"
+              ? "Ingresar"
+              : modo === "up"
+              ? "Crear cuenta de coordinador"
+              : modo === "forgot"
+              ? "Recuperar contraseña"
+              : "Cambiar contraseña"}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
             {modo === "in"
               ? "Acceso exclusivo para el coordinador."
-              : "La próxima cuenta nueva que confirme su correo recibirá coordinación. Las cuentas posteriores necesitarán autorización."}
+              : modo === "up"
+              ? "La próxima cuenta nueva que confirme su correo recibirá coordinación. Las cuentas posteriores necesitarán autorización."
+              : modo === "forgot"
+              ? "Escribe el correo de tu cuenta y te enviaremos un enlace para restablecerla."
+              : "Ingresa y confirma tu nueva contraseña."}
           </p>
         </div>
-        <div className="space-y-2">
-          <Label htmlFor="email">Correo</Label>
-          <Input id="email" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="pass">Contraseña</Label>
-          <Input id="pass" type="password" required minLength={6} value={pass} onChange={(e) => setPass(e.target.value)} />
-        </div>
+        {modo !== "update" && (
+          <div className="space-y-2">
+            <Label htmlFor="email">Correo</Label>
+            <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          </div>
+        )}
+        {modo !== "forgot" && (
+          <div className="space-y-2">
+            <Label htmlFor="pass">{modo === "update" ? "Nueva contraseña" : "Contraseña"}</Label>
+            <Input
+              id="pass"
+              type="password"
+              autoComplete={modo === "in" ? "current-password" : "new-password"}
+              required
+              minLength={6}
+              value={pass}
+              onChange={(e) => setPass(e.target.value)}
+            />
+          </div>
+        )}
+        {modo === "update" && (
+          <div className="space-y-2">
+            <Label htmlFor="confirmacion">Confirmar nueva contraseña</Label>
+            <Input
+              id="confirmacion"
+              type="password"
+              autoComplete="new-password"
+              required
+              minLength={6}
+              value={confirmacion}
+              onChange={(e) => setConfirmacion(e.target.value)}
+            />
+          </div>
+        )}
         <Button type="submit" className="w-full" disabled={cargando}>
-          {modo === "in" ? "Ingresar" : "Crear cuenta"}
+          {cargando
+            ? "Procesando…"
+            : modo === "in"
+            ? "Ingresar"
+            : modo === "up"
+            ? "Crear cuenta"
+            : modo === "forgot"
+            ? "Enviar enlace de recuperación"
+            : "Guardar nueva contraseña"}
         </Button>
-        <button type="button" className="w-full text-sm text-muted-foreground underline" onClick={() => setModo(modo === "in" ? "up" : "in")}>
-          {modo === "in" ? "¿Primera vez? Crear cuenta" : "Ya tengo cuenta"}
-        </button>
+        {modo === "in" && (
+          <button type="button" className="w-full text-sm text-muted-foreground underline" onClick={() => setModo("forgot")}>
+            ¿Olvidaste tu contraseña?
+          </button>
+        )}
+        {modo === "in" || modo === "up" ? (
+          <button type="button" className="w-full text-sm text-muted-foreground underline" onClick={() => setModo(modo === "in" ? "up" : "in")}>
+            {modo === "in" ? "¿Primera vez? Crear cuenta" : "Ya tengo cuenta"}
+          </button>
+        ) : modo === "forgot" ? (
+          <button type="button" className="w-full text-sm text-muted-foreground underline" onClick={() => setModo("in")}>
+            Volver a ingresar
+          </button>
+        ) : null}
       </form>
       </div>
     </div>
