@@ -18,12 +18,42 @@ import { asegurarCopiaNominaPeriodo } from "./SimpleCrud";
 import { errMsg, useRefrescar, type DatosCompletos, type Grupo } from "@/lib/db";
 import { calcularEdad } from "@/lib/edad"; import { importarDeportistas } from "@/lib/importar-deportistas";
 import { LISTA_FACULTADES, getCarrerasPorFacultad, normalizarCarrera, normalizarFacultad } from "@/lib/catalogos";
+import { idsSeleccionesLegadasPreferidas, rutaCertificadoCompartido } from "@/lib/certificados-selecciones";
 
 type Tipo = "selecciones" | "clubes";
 const authRoute = getRouteApi("/_authenticated");
+type CertificadosVisibles = {
+  porSeleccion: Record<string, string[]>;
+  canonicos: string[];
+  legados: Record<string, string[]>;
+  seleccionesConAccesoEntrenador: string[];
+};
+const certificadosVacios: CertificadosVisibles = {
+  porSeleccion: {},
+  canonicos: [],
+  legados: {},
+  seleccionesConAccesoEntrenador: [],
+};
+
+async function listarIdsPdf(carpeta: string) {
+  const ids = new Set<string>();
+  const limite = 1000;
+  let offset = 0;
+  for (;;) {
+    const { data: archivos, error } = await supabase.storage
+      .from("certificados-matricula")
+      .list(carpeta, { limit: limite, offset });
+    if (error) throw error;
+    for (const archivo of archivos ?? []) {
+      if (archivo.name.toLowerCase().endsWith(".pdf")) ids.add(archivo.name.slice(0, -4));
+    }
+    if ((archivos ?? []).length < limite) return ids;
+    offset += limite;
+  }
+}
 
 export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }) {
-  const { role } = authRoute.useRouteContext();
+  const { role, user } = authRoute.useRouteContext();
   const esAdmin = role === "admin";
   const esSel = tipo === "selecciones";
   const singular = esSel ? "selección" : "club";
@@ -74,39 +104,74 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
   const [descargandoIndividual, setDescargandoIndividual] = useState<string | null>(null);
   const [archivoCertificado, setArchivoCertificado] = useState<File | null>(null);
 
-  async function subirCertificado(seleccionId: string, deportistaId: string, file: File | undefined) {
+  async function subirCertificado(deportistaId: string, file: File | undefined) {
     if (!file) return;
     if (file.type !== "application/pdf" || !file.name.toLowerCase().endsWith(".pdf")) { toast.error("El certificado debe estar en formato PDF"); return; }
     if (file.size > 10 * 1024 * 1024) { toast.error("El PDF no puede superar 10 MB"); return; }
     setSubiendoCertificado(deportistaId);
-    const { error } = await supabase.storage.from("certificados-matricula").upload(`${seleccionId}/${deportistaId}.pdf`, file, { upsert: true, contentType: "application/pdf" });
-    setSubiendoCertificado(null);
-    if (error) {
-      toast.error(errMsg(error));
-    } else {
+    try {
+      const { error } = await supabase.storage
+        .from("certificados-matricula")
+        .upload(rutaCertificadoCompartido(deportistaId), file, { upsert: true, contentType: "application/pdf" });
+      if (error) throw error;
       toast.success("Certificado de matrícula guardado");
       await qc.invalidateQueries({ queryKey: ["certificados-selecciones"] });
+    } catch (error) {
+      toast.error(errMsg(error));
+    } finally {
+      setSubiendoCertificado(null);
     }
   }
 
-  async function descargarCertificadoIndividual(seleccionId: string, seleccionNombre: string, deportista: (typeof data.deportistas)[number] | undefined) {
+  async function obtenerBlobCertificado(seleccionId: string, deportistaId: string) {
+    const bucket = supabase.storage.from("certificados-matricula");
+    const rutaCompartida = rutaCertificadoCompartido(deportistaId);
+    if (certificadosPorSeleccion.canonicos.includes(deportistaId)) {
+      const { data: blob, error } = await bucket.download(rutaCompartida);
+      if (error) throw error;
+      if (!blob) throw new Error("No se encontró el PDF compartido del deportista.");
+      return blob;
+    }
+
+    const idsLegados = idsSeleccionesLegadasPreferidas(
+      seleccionId,
+      deportistaId,
+      data.selecciones,
+      data.selMiembros,
+      certificadosPorSeleccion.seleccionesConAccesoEntrenador,
+    );
+    for (const idLegado of idsLegados) {
+      if (!certificadosPorSeleccion.legados[idLegado]?.includes(deportistaId)) continue;
+      const { data: blob, error } = await bucket.download(`${idLegado}/${deportistaId}.pdf`);
+      if (error) throw error;
+      if (!blob) throw new Error("No se encontró el PDF legado del deportista.");
+
+      const { error: errorMigracion } = await bucket.upload(rutaCompartida, blob, {
+        upsert: false,
+        contentType: "application/pdf",
+      });
+      if (errorMigracion) {
+        const { data: blobCompartido, error: errorCompartido } = await bucket.download(rutaCompartida);
+        if (errorCompartido || !blobCompartido) throw errorMigracion;
+        return blobCompartido;
+      }
+
+      await qc.invalidateQueries({ queryKey: ["certificados-selecciones"] });
+      return blob;
+    }
+    throw new Error("No hay un certificado cargado para este deportista en la selección.");
+  }
+
+  async function descargarCertificadoIndividual(seleccionId: string, deportista: (typeof data.deportistas)[number] | undefined) {
     if (!deportista) return;
     setDescargandoIndividual(deportista.id);
     try {
-      const { data: blob, error } = await supabase.storage.from("certificados-matricula").download(`${seleccionId}/${deportista.id}.pdf`);
-      if (error) {
-        toast.error(`No se pudo descargar el certificado de ${deportista.nombres} ${deportista.apellidos}: ${errMsg(error)}`);
-        return;
-      }
-      if (!blob) {
-        toast.info("El archivo del certificado está vacío o no se encontró.");
-        return;
-      }
+      const blob = await obtenerBlobCertificado(seleccionId, deportista.id);
       const nombre = `${deportista.apellidos}_${deportista.nombres}`.trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
       link.href = url;
-      link.download = `Certificado_${seleccionNombre}_${nombre}.pdf`;
+      link.download = `Certificado_${nombre}.pdf`;
       link.click();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       toast.success(`Certificado de ${deportista.nombres} ${deportista.apellidos} descargado`);
@@ -117,30 +182,44 @@ export function GrupoModule({ tipo, data }: { tipo: Tipo; data: DatosCompletos }
     }
   }
 
-  async function descargarCertificados(seleccionId: string, seleccionNombre: string, miembrosActuales?: { deportista_id: string }[]) {
+  async function descargarCertificados(seleccionId: string, miembrosActuales?: { deportista_id: string }[]) {
     setDescargandoGrupo(seleccionId);
-    const { data: files, error } = await supabase.storage.from("certificados-matricula").list(seleccionId);
-    if (error) { setDescargandoGrupo(null); toast.error(errMsg(error)); return; }
-    const idsMiembros = miembrosActuales ? new Set(miembrosActuales.map((m) => m.deportista_id)) : null;
-    const pdfs = (files ?? []).filter((file) => {
-      if (!file.name.toLowerCase().endsWith(".pdf")) return false;
-      const depId = file.name.replace(/\.pdf$/i, "");
-      return !idsMiembros || idsMiembros.has(depId);
-    });
-    if (!pdfs.length) { setDescargandoGrupo(null); toast.info("No hay certificados cargados para los integrantes de esta selección"); return; }
+    const pdfs = (miembrosActuales ?? []).filter((miembro) =>
+      certificadosPorSeleccion.porSeleccion[seleccionId]?.includes(miembro.deportista_id),
+    );
+    if (!pdfs.length) {
+      setDescargandoGrupo(null);
+      toast.info("No hay certificados cargados para los integrantes de esta selección");
+      return;
+    }
     let fallidos = 0;
     let descargados = 0;
-    for (const file of pdfs) {
-      const { data: blob, error: downloadError } = await supabase.storage.from("certificados-matricula").download(`${seleccionId}/${file.name}`);
-      if (downloadError || !blob) { fallidos += 1; continue; }
-      const deportista = porId.get(file.name.replace(/\.pdf$/i, ""));
-      const nombre = `${deportista?.apellidos ?? "deportista"}_${deportista?.nombres ?? ""}`.trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
-      const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Certificado_${seleccionNombre}_${nombre}.pdf`; link.click();
-      descargados += 1;
-      setTimeout(() => URL.revokeObjectURL(link.href), 1000); await new Promise((resolve) => setTimeout(resolve, 300));
+    const errores: string[] = [];
+    try {
+      for (const miembro of pdfs) {
+        let blob: Blob;
+        try {
+          blob = await obtenerBlobCertificado(seleccionId, miembro.deportista_id);
+        } catch (error) {
+          fallidos += 1;
+          errores.push(errMsg(error));
+          continue;
+        }
+        const deportista = porId.get(miembro.deportista_id);
+        const nombre = `${deportista?.apellidos ?? "deportista"}_${deportista?.nombres ?? ""}`.trim().replace(/[^\p{L}\p{N}_-]+/gu, "_");
+        const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = `Certificado_${nombre}.pdf`; link.click();
+        descargados += 1;
+        setTimeout(() => URL.revokeObjectURL(link.href), 1000); await new Promise((resolve) => setTimeout(resolve, 300));
+      }
+    } finally {
+      setDescargandoGrupo(null);
     }
-    setDescargandoGrupo(null);
-    toast.success(fallidos ? `Descargados ${descargados}; fallaron ${fallidos}` : `Descargados ${descargados} certificado(s)`);
+    if (fallidos) {
+      const detalle = errores.length ? ` ${errores.slice(0, 2).join("; ")}` : "";
+      toast.error(`Descargados ${descargados}; fallaron ${fallidos}.${detalle}`);
+    } else {
+      toast.success(`Descargados ${descargados} certificado(s)`);
+    }
   }
 
 
@@ -189,23 +268,81 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
     (g) => (!periodo || g.periodo_id === periodo || !g.periodo_id) && (!deporte || g.deporte_id === deporte)
   );
 
-  const idsSeleccionesVisibles = useMemo(() => (esSel ? vistos.map((v) => v.id).sort().join(",") : ""), [esSel, vistos]);
-  const { data: certificadosPorSeleccion = {} } = useQuery({
-    queryKey: ["certificados-selecciones", idsSeleccionesVisibles],
+  const firmaCertificados = useMemo(() => {
+    const idsGrupos = new Set(vistos.map((grupo) => grupo.id));
+    return JSON.stringify({
+      grupos: [...idsGrupos].sort(),
+      selecciones: data.selecciones
+        .map((grupo) => `${grupo.id}:${grupo.nombre}:${grupo.deporte_id ?? ""}`)
+        .sort(),
+      miembros: data.selMiembros
+        .map((miembro) => `${miembro.grupo_id}:${miembro.deportista_id}`)
+        .sort(),
+    });
+  }, [vistos, data.selecciones, data.selMiembros]);
+  const { data: certificadosPorSeleccion, error: errorCertificados } = useQuery<CertificadosVisibles>({
+    queryKey: ["certificados-selecciones", user.id, role, firmaCertificados],
     enabled: esSel && vistos.length > 0,
+    initialData: certificadosVacios,
     queryFn: async () => {
-      const mapa: Record<string, string[]> = {};
-      await Promise.all(
-        vistos.map(async (g) => {
-          const { data: files } = await supabase.storage.from("certificados-matricula").list(g.id);
-          mapa[g.id] = (files ?? [])
-            .filter((f) => f.name.toLowerCase().endsWith(".pdf"))
-            .map((f) => f.name.replace(/\.pdf$/i, ""));
-        })
+      let query = supabase.from("accesos_selecciones").select("seleccion_id");
+      if (!esAdmin) query = query.eq("user_id", user.id);
+      const { data: accesos, error: errorAccesos } = await query;
+      if (errorAccesos) throw errorAccesos;
+      const seleccionesConAccesoEntrenador = (accesos ?? []).map((acceso) => acceso.seleccion_id);
+
+      const candidatosPorGrupoYDeportista = new Map<string, string[]>();
+      const idsLegados = new Set<string>();
+      for (const grupo of vistos) {
+        for (const miembro of miembros.filter((item) => item.grupo_id === grupo.id)) {
+          const ids = idsSeleccionesLegadasPreferidas(
+            grupo.id,
+            miembro.deportista_id,
+            data.selecciones,
+            data.selMiembros,
+            seleccionesConAccesoEntrenador,
+          );
+          candidatosPorGrupoYDeportista.set(`${grupo.id}:${miembro.deportista_id}`, ids);
+          ids.forEach((id) => idsLegados.add(id));
+        }
+      }
+
+      const canonicos = await listarIdsPdf("");
+      const archivosLegados: [string, string[]][] = await Promise.all(
+        [...idsLegados].map(async (id) => [id, [...(await listarIdsPdf(id))]]),
       );
-      return mapa;
+      const legados = Object.fromEntries(
+        archivosLegados,
+      );
+      const porSeleccion: Record<string, string[]> = {};
+      for (const grupo of vistos) {
+        porSeleccion[grupo.id] = [
+          ...new Set(
+            miembros
+              .filter((miembro) => miembro.grupo_id === grupo.id)
+              .filter((miembro) => {
+                if (canonicos.has(miembro.deportista_id)) return true;
+                return (candidatosPorGrupoYDeportista.get(`${grupo.id}:${miembro.deportista_id}`) ?? []).some(
+                  (id) => legados[id]?.includes(miembro.deportista_id),
+                );
+              })
+              .map((miembro) => miembro.deportista_id),
+          ),
+        ];
+      }
+      return {
+        porSeleccion,
+        canonicos: [...canonicos],
+        legados,
+        seleccionesConAccesoEntrenador,
+      };
     },
   });
+  useEffect(() => {
+    if (esSel && errorCertificados) {
+      toast.error(`No se pudieron consultar los certificados: ${errMsg(errorCertificados)}`);
+    }
+  }, [esSel, errorCertificados]);
 
   async function cambiarPeriodo(nuevoPeriodoId: string) {
     setPeriodo(nuevoPeriodoId);
@@ -285,7 +422,9 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
       if (errorMembresia) throw errorMembresia;
 
       if (esSel && archivoCertificado) {
-        const { error: errorCert } = await supabase.storage.from("certificados-matricula").upload(`${nuevoEstudiante.grupoId}/${deportistaId}.pdf`, archivoCertificado, { upsert: true, contentType: "application/pdf" });
+        const { error: errorCert } = await supabase.storage
+          .from("certificados-matricula")
+          .upload(rutaCertificadoCompartido(deportistaId), archivoCertificado, { upsert: true, contentType: "application/pdf" });
         if (errorCert) {
           toast.error(`Estudiante registrado, pero no se pudo guardar el certificado: ${errMsg(errorCert)}`);
         } else {
@@ -390,7 +529,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                 <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto text-sm">
                   {ms.map((m) => {
                     const d = porId.get(m.deportista_id);
-                    const certsDeEsteGrupo = certificadosPorSeleccion[g.id] ?? [];
+                    const certsDeEsteGrupo = certificadosPorSeleccion.porSeleccion[g.id] ?? [];
                     const tieneCertificado = certsDeEsteGrupo.includes(m.deportista_id);
                     return <li key={m.deportista_id} className="flex flex-wrap items-center justify-between gap-2 rounded-md px-1.5 py-1 hover:bg-muted/40">
                       <span className="min-w-0 truncate font-medium">{d?.apellidos} {d?.nombres}</span>
@@ -406,14 +545,14 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                               className="h-6 px-1.5 text-xs text-primary hover:text-primary"
                               title={`Descargar certificado de ${d?.nombres ?? ""} ${d?.apellidos ?? ""}`}
                               disabled={descargandoIndividual === m.deportista_id}
-                              onClick={() => void descargarCertificadoIndividual(g.id, g.nombre, d)}
+                              onClick={() => void descargarCertificadoIndividual(g.id, d)}
                             >
                               <Download className="mr-1 h-3 w-3" />
                               {descargandoIndividual === m.deportista_id ? "…" : "Descargar"}
                             </Button>
                             <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border px-1.5 py-0.5 text-[11px] text-muted-foreground hover:bg-muted" title="Reemplazar certificado en PDF">
                               <FileUp className="h-3 w-3" /><span>{subiendoCertificado === m.deportista_id ? "…" : "Cambiar"}</span>
-                              <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(g.id, m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
+                              <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
                             </label>
                           </>
                         ) : (
@@ -421,7 +560,7 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                             <span className="text-[11px] text-muted-foreground">Sin PDF</span>
                             <label className="inline-flex cursor-pointer items-center gap-1 rounded-md border border-dashed px-1.5 py-0.5 text-xs font-medium text-primary hover:bg-primary/5" title="Subir certificado de matrícula en PDF">
                               <FileUp className="h-3 w-3" /><span>{subiendoCertificado === m.deportista_id ? "Subiendo…" : "Subir PDF"}</span>
-                              <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(g.id, m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
+                              <input type="file" accept="application/pdf,.pdf" className="sr-only" disabled={subiendoCertificado === m.deportista_id} onChange={(event) => { void subirCertificado(m.deportista_id, event.currentTarget.files?.[0]); event.currentTarget.value = ""; }} />
                             </label>
                           </>
                         )}
@@ -430,14 +569,14 @@ const nombreDep = (id: string | null) => data.deportes.find((d) => d.id === id)?
                   })}
                 </ul>
                 {esSel && esAdmin && (() => {
-                  const certsDeEsteGrupo = certificadosPorSeleccion[g.id] ?? [];
+                  const certsDeEsteGrupo = certificadosPorSeleccion.porSeleccion[g.id] ?? [];
                   const miembrosConCertificado = ms.filter((m) => certsDeEsteGrupo.includes(m.deportista_id)).length;
                   return (
                     <Button
                       className="mt-3 w-full"
                       size="sm"
                       variant="outline"
-                      onClick={() => void descargarCertificados(g.id, g.nombre, ms)}
+                      onClick={() => void descargarCertificados(g.id, ms)}
                       disabled={descargandoGrupo === g.id || miembrosConCertificado === 0}
                     >
                       <Download className="mr-2 h-4 w-4" />
