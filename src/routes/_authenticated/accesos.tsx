@@ -15,13 +15,13 @@ export const Route = createFileRoute("/_authenticated/accesos")({
 });
 
 async function cargarCuentas() {
-  const { data, error } = await (supabase as any).rpc("listar_cuentas");
+  const { data, error } = await supabase.rpc("listar_cuentas");
   if (error) throw error;
   return (data ?? []) as Cuenta[];
 }
 
 async function cargarGruposAcceso() {
-  const { data, error } = await (supabase as any).rpc("listar_grupos_acceso");
+  const { data, error } = await supabase.rpc("listar_grupos_acceso");
   if (error) throw error;
   return (data ?? []) as GrupoAcceso[];
 }
@@ -32,7 +32,7 @@ function fecha(iso: string) {
 }
 
 type Cuenta = { user_id: string; correo: string; registrada_en: string; es_coordinador: boolean; rol: "admin" | "gestor_grupos" | "sin_acceso" };
-type GrupoAcceso = { tipo: "seleccion" | "club"; grupo_id: string; nombre: string };
+type GrupoAcceso = { tipo: "seleccion" | "club"; grupo_id: string; nombre: string; periodo: string | null; deporte: string | null };
 type GrupoAsignado = { tipo: "seleccion" | "club"; grupo_id: string };
 
 function Page() {
@@ -58,7 +58,7 @@ function Page() {
   async function cambiarRol(cuenta: Cuenta, rol: string) {
     setOcupado(cuenta.user_id);
     try {
-      const { error: rpcError } = await (supabase as any).rpc("asignar_rol_cuenta", { _user_id: cuenta.user_id, _rol: rol });
+      const { error: rpcError } = await supabase.rpc("asignar_rol_cuenta", { _user_id: cuenta.user_id, _rol: rol });
       if (rpcError) throw rpcError;
       toast.success("Rol actualizado.");
       await qc.invalidateQueries({ queryKey: ["cuentas"] });
@@ -116,7 +116,7 @@ function CuentaPermisos({ cuenta, grupos, esYo, ocupado, onCambiarRol }: { cuent
     queryKey: ["grupos-cuenta", cuenta.user_id],
     enabled: cuenta.rol === "gestor_grupos",
     queryFn: async () => {
-      const { data, error } = await (supabase as any).rpc("listar_grupos_cuenta", { _user_id: cuenta.user_id });
+      const { data, error } = await supabase.rpc("listar_grupos_cuenta", { _user_id: cuenta.user_id });
       if (error) throw error;
       return (data ?? []) as GrupoAsignado[];
     },
@@ -125,47 +125,42 @@ function CuentaPermisos({ cuenta, grupos, esYo, ocupado, onCambiarRol }: { cuent
   const [clubes, setClubes] = useState<string[]>([]);
   const [guardandoGrupos, setGuardandoGrupos] = useState(false);
 
-  const gruposUnicos = useMemo(() => {
-    const mapa = new Map<string, { tipo: "seleccion" | "club"; nombre: string; ids: string[] }>();
-    for (const g of grupos) {
-      const nombreNorm = g.nombre.trim();
-      const clave = `${g.tipo}:${nombreNorm.toLowerCase()}`;
-      const item = mapa.get(clave);
-      if (item) {
-        if (!item.ids.includes(g.grupo_id)) item.ids.push(g.grupo_id);
-      } else {
-        mapa.set(clave, { tipo: g.tipo, nombre: nombreNorm, ids: [g.grupo_id] });
-      }
-    }
-    return Array.from(mapa.values()).sort((a, b) => a.nombre.localeCompare(b.nombre, "es"));
-  }, [grupos]);
+  const gruposOrdenados = useMemo(
+    () => [...grupos].sort((a, b) =>
+      a.tipo.localeCompare(b.tipo)
+      || a.nombre.localeCompare(b.nombre, "es")
+      || (a.periodo ?? "").localeCompare(b.periodo ?? "", "es")
+      || (a.deporte ?? "").localeCompare(b.deporte ?? "", "es"),
+    ),
+    [grupos],
+  );
 
   useEffect(() => {
     const selAsignadas = new Set(asignados.filter((asignado) => asignado.tipo === "seleccion").map((asignado) => asignado.grupo_id));
     const clubAsignados = new Set(asignados.filter((asignado) => asignado.tipo === "club").map((asignado) => asignado.grupo_id));
 
-    const nuevasSelecciones = gruposUnicos
-      .filter((g) => g.tipo === "seleccion" && g.ids.some((id) => selAsignadas.has(id)))
-      .flatMap((g) => g.ids);
+    const nuevasSelecciones = gruposOrdenados
+      .filter((grupo) => grupo.tipo === "seleccion" && selAsignadas.has(grupo.grupo_id))
+      .map((grupo) => grupo.grupo_id);
 
-    const nuevosClubes = gruposUnicos
-      .filter((g) => g.tipo === "club" && g.ids.some((id) => clubAsignados.has(id)))
-      .flatMap((g) => g.ids);
+    const nuevosClubes = gruposOrdenados
+      .filter((grupo) => grupo.tipo === "club" && clubAsignados.has(grupo.grupo_id))
+      .map((grupo) => grupo.grupo_id);
 
     setSelecciones(nuevasSelecciones);
     setClubes(nuevosClubes);
-  }, [asignados, gruposUnicos]);
+  }, [asignados, gruposOrdenados]);
 
-  function alternar(tipo: "seleccion" | "club", ids: string[]) {
+  function alternar(tipo: "seleccion" | "club", id: string) {
     const valores = tipo === "seleccion" ? selecciones : clubes;
     const actualizar = tipo === "seleccion" ? setSelecciones : setClubes;
     const conjunto = new Set(valores);
-    const estaMarcado = ids.some((id) => conjunto.has(id));
+    const estaMarcado = conjunto.has(id);
 
     if (estaMarcado) {
-      ids.forEach((id) => conjunto.delete(id));
+      conjunto.delete(id);
     } else {
-      ids.forEach((id) => conjunto.add(id));
+      conjunto.add(id);
     }
     actualizar(Array.from(conjunto));
   }
@@ -173,7 +168,7 @@ function CuentaPermisos({ cuenta, grupos, esYo, ocupado, onCambiarRol }: { cuent
   async function guardarGrupos() {
     setGuardandoGrupos(true);
     try {
-      const { error } = await (supabase as any).rpc("guardar_grupos_cuenta", { _user_id: cuenta.user_id, _selecciones: selecciones, _clubes: clubes });
+      const { error } = await supabase.rpc("guardar_grupos_cuenta", { _user_id: cuenta.user_id, _selecciones: selecciones, _clubes: clubes });
       if (error) throw error;
       toast.success("Grupos autorizados actualizados.");
       await qc.invalidateQueries({ queryKey: ["grupos-cuenta", cuenta.user_id] });
@@ -198,21 +193,23 @@ function CuentaPermisos({ cuenta, grupos, esYo, ocupado, onCambiarRol }: { cuent
       {isLoading ? <p className="text-xs text-muted-foreground">Cargando grupos…</p> : <>
         <div className="grid gap-2 sm:grid-cols-2">
           {(["seleccion", "club"] as const).map((tipo) => {
-            const gruposTipo = gruposUnicos.filter((grupo) => grupo.tipo === tipo);
+            const gruposTipo = gruposOrdenados.filter((grupo) => grupo.tipo === tipo);
             const seleccionados = tipo === "seleccion" ? selecciones : clubes;
             return (
               <fieldset key={tipo} className="space-y-1">
                 <legend className="mb-1 text-xs font-semibold">{tipo === "seleccion" ? "Selecciones" : "Clubes"}</legend>
                 {gruposTipo.map((grupo) => {
-                  const marcado = grupo.ids.some((id) => seleccionados.includes(id));
+                  const marcado = seleccionados.includes(grupo.grupo_id);
+                  const periodo = grupo.periodo ?? "Sin período";
+                  const detalle = [periodo, grupo.deporte].filter(Boolean).join(" · ");
                   return (
-                    <label key={`${tipo}-${grupo.nombre}`} className="flex items-center gap-2 text-xs">
+                    <label key={`${tipo}-${grupo.grupo_id}`} className="flex items-center gap-2 text-xs">
                       <input
                         type="checkbox"
                         checked={marcado}
-                        onChange={() => alternar(tipo, grupo.ids)}
+                        onChange={() => alternar(tipo, grupo.grupo_id)}
                       />
-                      {grupo.nombre}
+                      <span>{grupo.nombre}<span className="text-muted-foreground"> · {detalle}</span></span>
                     </label>
                   );
                 })}

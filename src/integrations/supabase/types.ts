@@ -542,6 +542,10 @@ export type Database = {
         Args: { _clubes: string[]; _selecciones: string[]; _user_id: string }
         Returns: boolean
       }
+      heredar_clubes_periodo: {
+        Args: { _destino_id: string; _origen_id: string | null }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -562,8 +566,10 @@ export type Database = {
       listar_grupos_acceso: {
         Args: never
         Returns: {
+          deporte: string | null
           grupo_id: string
           nombre: string
+          periodo: string | null
           tipo: string
         }[]
       }

@@ -14,6 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { PageHeader } from "./PageHeader";
 import { ImportExport } from "./ImportExport";
 import { errMsg, useRefrescar } from "@/lib/db";
+import { seleccionarPeriodoOrigen, type PeriodoConFecha } from "@/lib/periodos";
 
 export type Campo = {
   key: string;
@@ -30,49 +31,6 @@ type EditRow = { id?: string; nombre?: unknown; [k: string]: unknown };type Grup
 
 function claveGrupo(nombre: string, deporteId: string | null) {
   return JSON.stringify([nombre.trim().toLocaleLowerCase(), deporteId]);
-}
-
-async function copiarClubesPeriodo(origenId: string | null, destinoId: string) {
-  let query = supabase.from("clubes").select("id,nombre,deporte_id");
-  query = origenId ? query.eq("periodo_id", origenId) : query.is("periodo_id", null);
-  const { data: origenes, error: errorOrigen } = await query;
-  if (errorOrigen) throw errorOrigen;
-  if (!origenes?.length) return;
-
-  const idsOrigen = origenes.map((grupo) => grupo.id);
-  const { data: miembros, error: errorMiembros } = await supabase
-    .from("club_miembros")
-    .select("club_id,deportista_id")
-    .in("club_id", idsOrigen);
-  if (errorMiembros) throw errorMiembros;
-
-  const { data: destinos, error: errorDestinos } = await supabase
-    .from("clubes")
-    .select("id,nombre,deporte_id")
-    .eq("periodo_id", destinoId);
-  if (errorDestinos) throw errorDestinos;
-
-  const porClave = new Map<string, GrupoPeriodo>();
-  (destinos ?? []).forEach((grupo) => porClave.set(claveGrupo(grupo.nombre, grupo.deporte_id), grupo));
-  const faltantes = origenes.filter((grupo) => !porClave.has(claveGrupo(grupo.nombre, grupo.deporte_id)));
-  if (faltantes.length) {
-    const { data: creados, error: errorCrear } = await supabase
-      .from("clubes")
-      .insert(faltantes.map((grupo) => ({ nombre: grupo.nombre, deporte_id: grupo.deporte_id, periodo_id: destinoId, es_ejemplo: false })))
-      .select("id,nombre,deporte_id");
-    if (errorCrear) throw errorCrear;
-    (creados ?? []).forEach((grupo) => porClave.set(claveGrupo(grupo.nombre, grupo.deporte_id), grupo));
-  }
-
-  const grupoDestinoPorOrigen = new Map(origenes.map((grupo) => [grupo.id, porClave.get(claveGrupo(grupo.nombre, grupo.deporte_id))?.id]));
-  const membresias = (miembros ?? []).flatMap((miembro) => {
-    const clubId = grupoDestinoPorOrigen.get(miembro.club_id);
-    return clubId ? [{ club_id: clubId, deportista_id: miembro.deportista_id }] : [];
-  });
-  if (membresias.length) {
-    const { error } = await supabase.from("club_miembros").upsert(membresias, { onConflict: "club_id,deportista_id", ignoreDuplicates: true });
-    if (error) throw error;
-  }
 }
 
 async function copiarSeleccionesPeriodo(origenId: string | null, destinoId: string) {
@@ -118,26 +76,7 @@ async function copiarSeleccionesPeriodo(origenId: string | null, destinoId: stri
   }
 }
 
-type PeriodoNomina = { id: string; nombre?: unknown; fecha_inicio?: unknown; created_at?: unknown };
-
-function fechaPeriodoNomina(periodo: PeriodoNomina) {
-  const fecha = Date.parse(String(periodo.fecha_inicio ?? ""));
-  if (Number.isFinite(fecha)) return fecha;
-
-  const nombre = String(periodo.nombre ?? "").toLocaleLowerCase();
-  const anio = nombre.match(/\b(19|20)\d{2}\b/);
-  if (anio) {
-    const meses = ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"];
-    const mes = meses.findIndex((nombreMes) => nombre.includes(nombreMes));
-    if (mes >= 0) return Date.UTC(Number(anio[0]), mes, 1);
-    const periodoNumerado = nombre.match(/(?:19|20)\d{2}\s*[-/]\s*([12])\b/);
-    if (periodoNumerado) return Date.UTC(Number(anio[0]), periodoNumerado[1] === "1" ? 2 : 8, 1);
-    return Date.UTC(Number(anio[0]), 0, 1);
-  }
-
-  const creado = Date.parse(String(periodo.created_at ?? ""));
-  return Number.isFinite(creado) ? creado : Number.NEGATIVE_INFINITY;
-}
+type PeriodoNomina = PeriodoConFecha;
 
 /** Fills empty club/selection catalogs for a term from the nearest earlier term that has data. */
 export async function asegurarCopiaNominaPeriodo(periodos: PeriodoNomina[], destinoId: string) {
@@ -159,8 +98,9 @@ export async function asegurarCopiaNominaPeriodo(periodos: PeriodoNomina[], dest
   const selecciones = seleccionesResult.data ?? [];
   const miembrosClub = miembrosClubResult.data ?? [];
   const miembrosSeleccion = miembrosSeleccionResult.data ?? [];
+  const periodoPorClub = new Map(clubes.map((grupo) => [grupo.id, grupo.periodo_id] as const));
   const periodosClubConMiembros = new Set(miembrosClub.flatMap((miembro) => {
-    const periodoId = clubes.find((grupo) => grupo.id === miembro.club_id)?.periodo_id;
+    const periodoId = periodoPorClub.get(miembro.club_id);
     return periodoId ? [periodoId] : [];
   }));
   const periodosSeleccionConMiembros = new Set(miembrosSeleccion.flatMap((miembro) => {
@@ -171,29 +111,33 @@ export async function asegurarCopiaNominaPeriodo(periodos: PeriodoNomina[], dest
   const seleccionesDestino = new Set(selecciones.filter((grupo) => grupo.periodo_id === destinoId).map((grupo) => grupo.id));
   const tieneMiembrosClubDestino = miembrosClub.some((miembro) => clubesDestino.has(miembro.club_id));
   const tieneMiembrosSeleccionDestino = miembrosSeleccion.some((miembro) => seleccionesDestino.has(miembro.seleccion_id));
-  const fechaDestino = fechaPeriodoNomina(destino);
-  const anteriores = periodos
-    .filter((periodo) => periodo.id !== destinoId && fechaPeriodoNomina(periodo) < fechaDestino)
-    .sort((a, b) => fechaPeriodoNomina(b) - fechaPeriodoNomina(a));
   const origenesCopiados: string[] = [];
 
   if (!clubesDestino.size || !tieneMiembrosClubDestino) {
-    const origen = anteriores.find((periodo) => periodosClubConMiembros.has(periodo.id))
-      ?? anteriores.find((periodo) => clubes.some((grupo) => grupo.periodo_id === periodo.id))
-      ?? periodos.find((periodo) => periodo.id !== destinoId && periodosClubConMiembros.has(periodo.id))
-      ?? periodos.find((periodo) => periodo.id !== destinoId && clubes.some((grupo) => grupo.periodo_id === periodo.id))
+    const origen = seleccionarPeriodoOrigen(
+      periodos,
+      destino,
+      periodosClubConMiembros,
+      new Set(clubes.flatMap((grupo) => grupo.periodo_id ? [grupo.periodo_id] : [])),
+    )
       ?? (clubes.some((grupo) => !grupo.periodo_id) ? { id: null, nombre: "catálogo inicial" } : null);
     if (origen) {
-      await copiarClubesPeriodo(origen.id, destinoId);
-      origenesCopiados.push(String(origen.nombre ?? "período anterior"));
+      const { data: copiados, error } = await supabase.rpc("heredar_clubes_periodo", {
+        _origen_id: origen.id,
+        _destino_id: destinoId,
+      });
+      if (error) throw error;
+      if (copiados) origenesCopiados.push(String(origen.nombre ?? "período anterior"));
     }
   }
 
   if (!seleccionesDestino.size || !tieneMiembrosSeleccionDestino) {
-    const origen = anteriores.find((periodo) => periodosSeleccionConMiembros.has(periodo.id))
-      ?? anteriores.find((periodo) => selecciones.some((grupo) => grupo.periodo_id === periodo.id))
-      ?? periodos.find((periodo) => periodo.id !== destinoId && periodosSeleccionConMiembros.has(periodo.id))
-      ?? periodos.find((periodo) => periodo.id !== destinoId && selecciones.some((grupo) => grupo.periodo_id === periodo.id))
+    const origen = seleccionarPeriodoOrigen(
+      periodos,
+      destino,
+      periodosSeleccionConMiembros,
+      new Set(selecciones.flatMap((grupo) => grupo.periodo_id ? [grupo.periodo_id] : [])),
+    )
       ?? (selecciones.some((grupo) => !grupo.periodo_id) ? { id: null, nombre: "catálogo inicial" } : null);
     if (origen) {
       await copiarSeleccionesPeriodo(origen.id, destinoId);
