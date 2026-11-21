@@ -30,6 +30,7 @@ function AuthPage() {
   const [pass, setPass] = useState("");
   const [confirmacion, setConfirmacion] = useState("");
   const [cargando, setCargando] = useState(false);
+  const [confirmacionPendiente, setConfirmacionPendiente] = useState(false);
 
   useEffect(() => {
     let activa = true;
@@ -91,15 +92,27 @@ function AuthPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password: pass });
         if (error) throw error;
         nav({ to: "/panel" });
+      } else if (confirmacionPendiente) {
+        const { error } = await supabase.auth.resend({
+          type: "signup",
+          email: email.trim(),
+          options: { emailRedirectTo: `${window.location.origin}/panel` },
+        });
+        if (error) throw error;
+        toast.success("Se solicitó reenviar el correo. Revisa tu bandeja de entrada y spam.");
       } else {
         const { data, error } = await supabase.auth.signUp({
-          email,
+          email: email.trim(),
           password: pass,
           options: { emailRedirectTo: window.location.origin + "/panel" },
         });
         if (error) throw error;
         if (data.session) nav({ to: "/panel" });
-        else toast.success("Revisa tu correo para confirmar la cuenta.");
+        else {
+          setConfirmacionPendiente(true);
+          setPass("");
+          toast.success("Se aceptó la solicitud. Si no llega el correo, pulsa «Reenviar correo de confirmación».");
+        }
       }
     } catch (err) {
       toast.error((err as Error).message);
@@ -136,7 +149,9 @@ function AuthPage() {
             {modo === "in"
               ? "Acceso exclusivo para el coordinador."
               : modo === "up"
-              ? "La próxima cuenta nueva que confirme su correo recibirá coordinación. Las cuentas posteriores necesitarán autorización."
+              ? confirmacionPendiente
+                ? "La cuenta está pendiente de confirmación. Si no recibiste el correo, puedes solicitar otro."
+                : "La próxima cuenta nueva que confirme su correo recibirá coordinación. Las cuentas posteriores necesitarán autorización."
               : modo === "forgot"
               ? "Escribe el correo de tu cuenta y te enviaremos un enlace para restablecerla."
               : "Ingresa y confirma tu nueva contraseña."}
@@ -145,10 +160,20 @@ function AuthPage() {
         {modo !== "update" && (
           <div className="space-y-2">
             <Label htmlFor="email">Correo</Label>
-            <Input id="email" type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+            <Input
+              id="email"
+              type="email"
+              autoComplete="email"
+              required
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                setConfirmacionPendiente(false);
+              }}
+            />
           </div>
         )}
-        {modo !== "forgot" && (
+        {modo !== "forgot" && !(modo === "up" && confirmacionPendiente) && (
           <div className="space-y-2">
             <Label htmlFor="pass">{modo === "update" ? "Nueva contraseña" : "Contraseña"}</Label>
             <Input
@@ -182,7 +207,9 @@ function AuthPage() {
             : modo === "in"
             ? "Ingresar"
             : modo === "up"
-            ? "Crear cuenta"
+            ? confirmacionPendiente
+              ? "Reenviar correo de confirmación"
+              : "Crear cuenta"
             : modo === "forgot"
             ? "Enviar enlace de recuperación"
             : "Guardar nueva contraseña"}
